@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B1917">
+<title>Bodega R-56 — Dashboard</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1B1917;
+    --card: #262320;
+    --card-border: #3A3530;
+    --tomate: #D8492F;
+    --tomate-dim: #7A2E1F;
+    --tallo: #6B8F5C;
+    --ambar: #E0A526;
+    --text: #F3EEE4;
+    --text-dim: #A69C8C;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(24px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 20px 20px 0;
+  }
+
+  .marca {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  #fecha-label {
+    font-size: 18px;
+    font-weight: 600;
+    text-transform: capitalize;
+    margin-top: 4px;
+  }
+
+  /* --- Sello: estado de sincronización, guiño al vale sellado del negocio --- */
+  .sello-wrap { display: flex; align-items: center; }
+  #sello {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--tallo);
+    border: 2px solid var(--tallo);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.1;
+    transform: rotate(-8deg);
+    padding: 4px;
+  }
+  #sello.sello--offline {
+    color: var(--ambar);
+    border-color: var(--ambar);
+  }
+
+  button#refrescar {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 20px;
+    padding: 8px;
+    margin-left: 4px;
+    cursor: pointer;
+    transition: transform 0.4s ease;
+  }
+  button#refrescar.girando { transform: rotate(360deg); }
+
+  #error-box {
+    margin: 16px 20px 0;
+    padding: 10px 14px;
+    background: rgba(224, 165, 38, 0.15);
+    border: 1px solid var(--ambar);
+    color: var(--ambar);
+    font-size: 13px;
+    border-radius: 10px;
+  }
+  #error-box[hidden] { display: none; }
+
+  /* --- Hero: la cifra que más importa a las 6am --- */
+  .hero {
+    margin: 20px 20px 0;
+    padding: 28px 24px;
+    background: linear-gradient(160deg, var(--tomate) 0%, var(--tomate-dim) 100%);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    right: -30px; top: -30px;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+  }
+  .hero-label {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    font-weight: 600;
+  }
+  .hero-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 76px;
+    line-height: 1;
+    margin: 4px 0 0;
+    color: #FFF8F0;
+  }
+  .hero-unidad {
+    font-size: 18px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+    margin-left: 6px;
+  }
+  #hero-sub {
+    margin-top: 10px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.85);
+  }
+
+  /* --- Grid de stats secundarios --- */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 20px 0;
+  }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .stat-label {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+  .stat-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .stat--efectivo { grid-column: span 2; border-color: var(--tallo); }
+  .stat--efectivo .stat-val { color: var(--tallo); }
+
+  /* --- Manifiestos abiertos, estilo talón de vale --- */
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 24px 20px 8px;
+  }
+  .section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: 0.02em;
+  }
+  #manifiestos-count { font-size: 12px; color: var(--text-dim); }
+
+  ul#manifiestos-lista {
+    list-style: none;
+    margin: 0 20px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ticket {
+    background: var(--card);
+    border: 1px dashed var(--card-border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+  }
+  .ticket-carro {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--tomate);
+  }
+  .ticket-agricultor { color: var(--text-dim); }
+  li.vacio {
+    color: var(--text-dim);
+    font-size: 14px;
+    padding: 12px 14px;
+  }
+
+  #actualizado {
+    margin: 20px 20px 0;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    button#refrescar { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="top">
+    <div>
+      <div class="marca">Bodega R-56</div>
+      <div id="fecha-label">—</div>
+    </div>
+    <div class="sello-wrap">
+      <button id="refrescar" aria-label="Actualizar">⟳</button>
+      <div id="sello">AL DÍA</div>
+    </div>
+  </div>
+
+  <div id="error-box" hidden></div>
+
+  <section class="hero">
+    <div class="hero-label">Cajas vendidas hoy</div>
+    <div><span class="hero-num" id="hero-cajas">0</span><span class="hero-unidad">cajas</span></div>
+    <div id="hero-sub">—</div>
+  </section>
+
+  <div class="grid">
+    <div class="stat">
+      <div class="stat-label">Contado</div>
+      <div class="stat-val" id="stat-contado">$0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Crédito</div>
+      <div class="stat-val" id="stat-credito">$0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Cobranza del día</div>
+      <div class="stat-val" id="stat-cobranza">$0</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Gastos</div>
+      <div class="stat-val" id="stat-gastos">$0</div>
+    </div>
+    <div class="stat stat--efectivo">
+      <div class="stat-label">Efectivo estimado</div>
+      <div class="stat-val" id="stat-efectivo">$0</div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div class="section-title">Camiones abiertos</div>
+    <div id="manifiestos-count">—</div>
+  </div>
+  <ul id="manifiestos-lista"></ul>
+
+  <div id="actualizado">—</div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
