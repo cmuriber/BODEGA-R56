@@ -2,7 +2,7 @@
 //
 // CONFIGURACIÓN: pega aquí la URL de tu Apps Script publicado como app web
 // (Implementar > Nueva implementación > Aplicación web).
-const APPS_SCRIPT_URL = 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwdpmSS7W5BC6wVRyLu6-NUbSoYYe33TjiTSw7I0rEZluyc7IvD1jyreRLr4m-JKZ-KJw/exec';
 
 const DB_NAME = 'r56-dashboard';
 const STORE_NAME = 'snapshots';
