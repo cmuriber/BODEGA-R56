@@ -7,7 +7,7 @@ const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw1LznKsdVxOs27
 const DB_NAME = 'r56-dashboard';
 const STORE_NAME = 'snapshots';
 
-// ---------- IndexedDB: guarda el último dashboard bueno conocido ----------
+// ---------- IndexedDB: guarda el último dashboard bueno conocidoO ----------
 
 function abrirDB() {
   return new Promise((resolve, reject) => {
