@@ -2,7 +2,7 @@
 //
 // CONFIGURACIÓN: pega aquí la URL de tu Apps Script publicado como app web
 // (Implementar > Nueva implementación > Aplicación web).
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwdpmSS7W5BC6wVRyLu6-NUbSoYYe33TjiTSw7I0rEZluyc7IvD1jyreRLr4m-JKZ-KJw/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw1LznKsdVxOs27P6Dgb0gC9E1xxAV0Pjip4fNZMdnR4J8AI3xoFiAUchXQiO6CZwwFug/exec';
 
 const DB_NAME = 'r56-dashboard';
 const STORE_NAME = 'snapshots';
@@ -108,6 +108,50 @@ function mostrarError(msg) {
   box.hidden = false;
 }
 
+// ---------- Llamada al backend vía JSONP ----------
+//
+// Apps Script, cuando se le llama con fetch() desde otro dominio (como
+// GitHub Pages), hace un redirect interno que los navegadores bloquean por
+// CORS. JSONP esquiva ese problema por completo: en vez de fetch(), se
+// inserta una etiqueta <script> — las etiquetas <script> no están sujetas
+// a la política de CORS.
+
+let jsonpContador = 0;
+
+function llamarJSONP(url, timeoutMs = 10000) {
+  return new Promise((resolve, reject) => {
+    jsonpContador += 1;
+    const callbackName = 'r56cb_' + Date.now() + '_' + jsonpContador;
+    const script = document.createElement('script');
+    let timer;
+
+    function limpiar() {
+      clearTimeout(timer);
+      delete window[callbackName];
+      script.remove();
+    }
+
+    window[callbackName] = (data) => {
+      limpiar();
+      resolve(data);
+    };
+
+    script.onerror = () => {
+      limpiar();
+      reject(new Error('No se pudo contactar al servidor (sin internet o URL incorrecta).'));
+    };
+
+    timer = setTimeout(() => {
+      limpiar();
+      reject(new Error('El servidor tardó demasiado en responder.'));
+    }, timeoutMs);
+
+    const sep = url.includes('?') ? '&' : '?';
+    script.src = `${url}${sep}callback=${callbackName}`;
+    document.head.appendChild(script);
+  });
+}
+
 // ---------- Carga principal ----------
 
 async function cargarDashboard() {
@@ -121,9 +165,7 @@ async function cargarDashboard() {
   }
 
   try {
-    const res = await fetch(`${APPS_SCRIPT_URL}?action=dashboard&fecha=${fecha}`);
-    if (!res.ok) throw new Error('Respuesta no válida del servidor');
-    const data = await res.json();
+    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=dashboard&fecha=${fecha}`);
     if (data.error) throw new Error(data.error);
 
     await guardarSnapshot(data);
