@@ -18,9 +18,28 @@ const STORE_PENDIENTES = 'pendientes';
 
 // ---------- IndexedDB ----------
 
+// Comparte la base IndexedDB con app-manifiesto.js (Módulo 3). Si se deja
+// una pestaña vieja abierta con una versión anterior de la base, un
+// intento de abrir una versión más nueva se queda "bloqueado" en silencio
+// para siempre — por eso esta conexión se cierra sola cuando otra pestaña
+// necesita subir de versión, y truena con un mensaje claro después de 6s
+// en vez de quedarse colgada.
+let dbPromise = null;
+
 function abrirDB() {
-  return new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise;
+
+  dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
+    let resuelto = false;
+
+    const timer = setTimeout(() => {
+      if (!resuelto) {
+        dbPromise = null;
+        reject(new Error('No se pudo abrir la base de datos local (bloqueada por otra pestaña de la app). Cierra todas las demás pestañas/ventanas de Bodega R-56 y vuelve a intentar.'));
+      }
+    }, 6000);
+
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE_SNAPSHOTS)) {
@@ -36,9 +55,25 @@ function abrirDB() {
         db.createObjectStore(STORE_PENDIENTES, { keyPath: 'id', autoIncrement: true });
       }
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onblocked = () => {
+      console.warn('Apertura de IndexedDB bloqueada por otra pestaña con una versión anterior abierta.');
+    };
+    req.onsuccess = () => {
+      resuelto = true;
+      clearTimeout(timer);
+      const db = req.result;
+      db.onversionchange = () => { db.close(); dbPromise = null; };
+      resolve(db);
+    };
+    req.onerror = () => {
+      resuelto = true;
+      clearTimeout(timer);
+      dbPromise = null;
+      reject(req.error);
+    };
   });
+
+  return dbPromise;
 }
 
 async function guardarSnapshot(data) {

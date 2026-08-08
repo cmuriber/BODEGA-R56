@@ -47,9 +47,31 @@ let sincronizando = false;
 
 // ---------- IndexedDB ----------
 
+// Dashboard (app.js) y esta pantalla comparten la misma base IndexedDB. Si
+// se deja una pestaña vieja abierta con una versión anterior de la base
+// (ej. el Dashboard cacheado por el Service Worker antes de esta
+// actualización), un intento de abrir una versión más nueva se queda
+// "bloqueado" en silencio para siempre — eso es lo que hacía que el botón
+// de guardar pareciera no hacer nada. dbPromise se cachea para no abrir una
+// conexión nueva cada vez, y se cierra sola si otra pestaña necesita subir
+// de versión, y truena con un mensaje claro después de 6s en vez de
+// quedarse colgado.
+let dbPromise = null;
+
 function abrirDB() {
-  return new Promise((resolve, reject) => {
+  if (dbPromise) return dbPromise;
+
+  dbPromise = new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
+    let resuelto = false;
+
+    const timer = setTimeout(() => {
+      if (!resuelto) {
+        dbPromise = null;
+        reject(new Error('No se pudo abrir la base de datos local (bloqueada por otra pestaña de la app). Cierra todas las demás pestañas/ventanas de Bodega R-56 y vuelve a intentar.'));
+      }
+    }, 6000);
+
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE_SNAPSHOTS)) {
@@ -65,9 +87,27 @@ function abrirDB() {
         db.createObjectStore(STORE_PENDIENTES, { keyPath: 'id', autoIncrement: true });
       }
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onblocked = () => {
+      console.warn('Apertura de IndexedDB bloqueada por otra pestaña con una versión anterior abierta.');
+    };
+    req.onsuccess = () => {
+      resuelto = true;
+      clearTimeout(timer);
+      const db = req.result;
+      // Si OTRA pestaña necesita subir de versión después, esta conexión se
+      // cierra sola en vez de bloquearla a ella.
+      db.onversionchange = () => { db.close(); dbPromise = null; };
+      resolve(db);
+    };
+    req.onerror = () => {
+      resuelto = true;
+      clearTimeout(timer);
+      dbPromise = null;
+      reject(req.error);
+    };
   });
+
+  return dbPromise;
 }
 
 async function guardarSesion(token, nombre, rol) {
