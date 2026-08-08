@@ -2,7 +2,7 @@
 // Cachea el shell de la app para que abra sin internet. Los datos del
 // dashboard se manejan aparte con IndexedDB (ver app.js).
 
-const CACHE_NAME = 'r56-dashboard-v1';
+const CACHE_NAME = 'r56-dashboard-v2';
 const SHELL_FILES = [
   './index.html',
   './app.js',
@@ -29,9 +29,15 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
-  // Nunca cachear llamadas a la API de Apps Script: esas se manejan con
-  // IndexedDB en app.js para lógica de "último dato bueno conocido".
-  if (req.url.includes('script.google.com')) return;
+  // Solo interceptamos peticiones a los archivos propios de esta PWA
+  // (mismo origen: index.html, app.js, manifest.json, icon.svg). Cualquier
+  // llamada externa —Apps Script, su redirect a googleusercontent.com,
+  // fuentes de Google, lo que sea— se deja pasar directo a la red sin
+  // tocarla. Antes solo excluíamos 'script.google.com', pero el redirect
+  // real ocurre hacia 'script.googleusercontent.com', y esa sí se estaba
+  // quedando atrapada por el Service Worker — por eso fallaba con F5 normal
+  // pero no con recarga forzada (que ignora al Service Worker por completo).
+  if (new URL(req.url).origin !== self.location.origin) return;
 
   event.respondWith(
     caches.match(req).then((cached) => {
