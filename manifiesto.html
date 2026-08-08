@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1B1917">
+<title>Bodega R-56 — Manifiesto de Carro</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #1B1917;
+    --card: #262320;
+    --card-border: #3A3530;
+    --tomate: #D8492F;
+    --tomate-dim: #7A2E1F;
+    --tallo: #6B8F5C;
+    --ambar: #E0A526;
+    --dorado: #D4AF37;
+    --dorado-dim: #8A6E1F;
+    --text: #F3EEE4;
+    --text-dim: #A69C8C;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(24px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Login (idéntico al Dashboard) ---------- */
+  #login-view {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(212,175,55,0.06), transparent 60%),
+      var(--bg);
+  }
+  #login-view[hidden] { display: none; }
+
+  .login-card {
+    width: 100%;
+    max-width: 360px;
+    background: linear-gradient(165deg, #221F1B 0%, #16140F 100%);
+    border: 1px solid rgba(212,175,55,0.25);
+    border-radius: 18px;
+    padding: 36px 28px 28px;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 56px; height: 3px;
+    border-radius: 0 0 4px 4px;
+    background: linear-gradient(90deg, var(--dorado-dim), var(--dorado));
+  }
+
+  .login-eyebrow {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--dorado);
+    text-align: center;
+    font-weight: 700;
+  }
+  .login-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 30px;
+    font-weight: 700;
+    text-align: center;
+    margin: 6px 0 4px;
+    color: var(--text);
+  }
+  .login-sub {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 26px;
+  }
+
+  .login-field { margin-bottom: 16px; }
+  .login-field label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .login-field input {
+    width: 100%;
+    background: #14120E;
+    border: 1px solid rgba(212,175,55,0.2);
+    border-radius: 10px;
+    padding: 13px 14px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  .login-field input:focus {
+    outline: none;
+    border-color: var(--dorado);
+  }
+
+  #login-error {
+    color: #E88A6B;
+    font-size: 13px;
+    text-align: center;
+    margin: -4px 0 14px;
+    min-height: 16px;
+  }
+
+  button#login-submit {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #E8C766, var(--dorado) 60%, #B8912A);
+    color: #1B1917;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  button#login-submit:disabled { opacity: 0.6; }
+
+  /* ---------- App ---------- */
+  #app-view[hidden] { display: none; }
+
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 20px 20px 0;
+  }
+  .marca {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .titulo-modulo { font-size: 18px; font-weight: 600; margin-top: 4px; }
+
+  .top-acciones { display: flex; align-items: center; gap: 10px; }
+  .top-acciones a, .top-acciones button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 13px;
+    padding: 6px 0;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+  }
+
+  #sello-chip {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--tallo);
+    border: 1px solid var(--tallo);
+    border-radius: 20px;
+    padding: 4px 10px;
+    white-space: nowrap;
+  }
+  #sello-chip.offline { color: var(--ambar); border-color: var(--ambar); }
+
+  #error-box {
+    margin: 16px 20px 0;
+    padding: 10px 14px;
+    background: rgba(224, 165, 38, 0.15);
+    border: 1px solid var(--ambar);
+    color: var(--ambar);
+    font-size: 13px;
+    border-radius: 10px;
+  }
+  #error-box[hidden] { display: none; }
+
+  .seccion { margin: 20px 20px 0; }
+  .seccion-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 19px;
+  }
+
+  .btn-primario {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--tomate), var(--tomate-dim));
+    color: #FFF8F0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .btn-secundario {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn-texto {
+    background: none;
+    border: none;
+    color: var(--dorado);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 0;
+  }
+
+  ul#lista-carros, ul#lista-naves {
+    list-style: none;
+    margin: 12px 20px 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .carro-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    cursor: pointer;
+  }
+  .carro-card-top { display: flex; justify-content: space-between; align-items: center; }
+  .carro-carro {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--tomate);
+  }
+  .carro-agricultor { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
+  .carro-meta { margin-top: 6px; font-size: 12px; color: var(--text-dim); }
+
+  .badge {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .badge--captura { background: rgba(224,165,38,0.15); color: var(--ambar); border: 1px solid var(--ambar); }
+  .badge--abierto { background: rgba(107,143,92,0.15); color: var(--tallo); border: 1px solid var(--tallo); }
+  .badge--cerrado { background: rgba(166,156,140,0.15); color: var(--text-dim); border: 1px solid var(--text-dim); }
+  .badge--pendiente { background: rgba(216,73,47,0.15); color: var(--tomate); border: 1px solid var(--tomate); }
+
+  li.vacio { color: var(--text-dim); font-size: 14px; padding: 20px 0; text-align: center; list-style: none; }
+
+  .fab-nuevo {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    width: calc(100% - 40px);
+    max-width: 440px;
+  }
+
+  /* ---------- Detalle de manifiesto ---------- */
+  #vista-detalle[hidden] { display: none; }
+  .detalle-header { margin: 16px 20px 0; }
+  .detalle-carro {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 30px;
+    color: var(--tomate);
+  }
+  .detalle-agricultor { color: var(--text-dim); font-size: 14px; margin-top: 2px; }
+  .detalle-stats { display: flex; gap: 16px; margin-top: 10px; font-size: 13px; color: var(--text-dim); }
+  .detalle-stats b { color: var(--text); }
+
+  .nave-card {
+    background: var(--card);
+    border: 1px dashed var(--card-border);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .nave-card-top { display: flex; justify-content: space-between; align-items: center; }
+  .nave-titulo { font-weight: 600; font-size: 14px; }
+  .nave-total { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; color: var(--tallo); }
+  .nave-desglose { margin-top: 4px; font-size: 12px; color: var(--text-dim); }
+
+  .acciones-detalle { margin: 18px 20px 90px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* ---------- Modal genérico ---------- */
+  .modal-fondo {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: flex-end;
+    z-index: 50;
+  }
+  .modal-fondo[hidden] { display: none; }
+  .modal-caja {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+    max-height: 88vh;
+    overflow-y: auto;
+    border-top: 1px solid rgba(212,175,55,0.25);
+  }
+  .modal-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+  .campo { margin-bottom: 14px; }
+  .campo label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+  }
+  .campo select, .campo input[type=text] {
+    width: 100%;
+    background: #14120E;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 12px 13px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  .campo select:focus, .campo input:focus { outline: none; border-color: var(--dorado); }
+
+  .grid-tamanos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .campo-tamano label {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    display: block;
+  }
+  .campo-tamano input {
+    width: 100%;
+    background: #14120E;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-size: 15px;
+    color: var(--text);
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+  }
+  .campo-tamano input:focus { outline: none; border-color: var(--dorado); }
+
+  .modal-acciones { display: flex; gap: 10px; margin-top: 6px; }
+  .modal-acciones .btn-secundario, .modal-acciones .btn-primario { flex: 1; }
+
+  .campo-error { color: #E88A6B; font-size: 13px; min-height: 16px; margin-bottom: 4px; }
+
+  .compendio-tabla {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px 14px;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  .compendio-tabla .num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    text-align: right;
+  }
+  .compendio-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: 12px;
+    margin-top: 6px;
+    border-top: 1px solid var(--card-border);
+  }
+  .compendio-total .num { font-size: 28px; color: var(--tallo); font-family: 'Barlow Condensed', sans-serif; font-weight: 700; }
+</style>
+</head>
+<body>
+
+  <section id="login-view">
+    <form class="login-card" id="login-form">
+      <div class="login-eyebrow">Sistema · Acceso</div>
+      <div class="login-title">Bienvenido</div>
+      <div class="login-sub">Ingresa tus credenciales para continuar</div>
+
+      <div class="login-field">
+        <label for="login-usuario">Usuario</label>
+        <input type="text" id="login-usuario" autocomplete="username" autocapitalize="off" required>
+      </div>
+      <div class="login-field">
+        <label for="login-password">Contraseña</label>
+        <input type="password" id="login-password" autocomplete="current-password" required>
+      </div>
+
+      <div id="login-error"></div>
+
+      <button type="submit" id="login-submit">Iniciar sesión</button>
+    </form>
+  </section>
+
+  <div id="app-view" hidden>
+
+    <div class="top">
+      <div>
+        <div class="marca">Bodega R-56</div>
+        <div class="titulo-modulo">Manifiesto de Carro</div>
+      </div>
+      <div class="top-acciones">
+        <span id="sello-chip">AL DÍA</span>
+        <a href="./index.html">Dashboard</a>
+        <button id="btn-salir" type="button">Salir</button>
+      </div>
+    </div>
+
+    <div id="error-box" hidden></div>
+
+    <!-- Vista: lista de camiones del día -->
+    <div id="vista-lista">
+      <div class="seccion">
+        <div class="seccion-titulo">Camiones de hoy</div>
+      </div>
+      <ul id="lista-carros"></ul>
+      <div style="height: 90px;"></div>
+      <button class="btn-primario fab-nuevo" id="btn-nuevo-carro" type="button">+ Nuevo Carro</button>
+    </div>
+
+    <!-- Vista: detalle de un manifiesto -->
+    <div id="vista-detalle" hidden>
+      <button class="btn-texto" id="btn-volver-lista" type="button" style="margin: 16px 20px 0;">← Camiones de hoy</button>
+      <div class="detalle-header">
+        <div class="detalle-carro" id="detalle-carro">—</div>
+        <div class="detalle-agricultor" id="detalle-agricultor">—</div>
+        <div class="detalle-stats">
+          <span>Estado: <b id="detalle-estado">—</b></span>
+          <span>Cajas: <b id="detalle-cajas">0</b></span>
+        </div>
+      </div>
+      <ul id="lista-naves"></ul>
+      <div class="acciones-detalle">
+        <button class="btn-primario" id="btn-nave-nueva" type="button">NAVE NUEVA</button>
+        <button class="btn-secundario" id="btn-finalizar" type="button">Finalizar manifiesto</button>
+        <button class="btn-secundario" id="btn-reabrir" type="button" hidden>Reabrir (admin)</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Modal: nuevo carro -->
+  <div class="modal-fondo" id="modal-carro" hidden>
+    <div class="modal-caja">
+      <div class="modal-titulo">Nuevo Carro</div>
+      <div class="campo">
+        <label for="carro-agricultor">Agricultor</label>
+        <select id="carro-agricultor"></select>
+      </div>
+      <div class="campo">
+        <label for="carro-numero">Número de Carro</label>
+        <input type="text" id="carro-numero" inputmode="numeric" placeholder="Ej. 5">
+      </div>
+      <div class="campo-error" id="carro-error"></div>
+      <div class="modal-acciones">
+        <button class="btn-secundario" id="btn-cancelar-carro" type="button">Cancelar</button>
+        <button class="btn-primario" id="btn-crear-carro" type="button">Crear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: nave -->
+  <div class="modal-fondo" id="modal-nave" hidden>
+    <div class="modal-caja">
+      <div class="modal-titulo" id="modal-nave-titulo">Nave Nueva</div>
+      <div class="campo">
+        <label for="nave-invernadero">Invernadero</label>
+        <select id="nave-invernadero"></select>
+      </div>
+      <div class="campo">
+        <label for="nave-letra">Letra</label>
+        <select id="nave-letra"></select>
+      </div>
+      <div class="campo">
+        <label for="nave-semilla">Semilla</label>
+        <select id="nave-semilla"></select>
+      </div>
+      <div class="grid-tamanos" id="grid-tamanos"></div>
+      <div class="campo-error" id="nave-error"></div>
+      <div class="modal-acciones">
+        <button class="btn-secundario" id="btn-cancelar-nave" type="button">Cancelar</button>
+        <button class="btn-primario" id="btn-guardar-nave" type="button">OK / Ingresar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: compendio final -->
+  <div class="modal-fondo" id="modal-compendio" hidden>
+    <div class="modal-caja">
+      <div class="modal-titulo">Compendio del Manifiesto</div>
+      <div class="compendio-tabla" id="compendio-tabla"></div>
+      <div class="compendio-total">
+        <span>Total de cajas</span>
+        <span class="num" id="compendio-total">0</span>
+      </div>
+      <button class="btn-primario" id="btn-cerrar-compendio" type="button" style="margin-top: 16px;">Listo</button>
+    </div>
+  </div>
+
+  <script src="./app-manifiesto.js"></script>
+</body>
+</html>

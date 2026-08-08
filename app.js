@@ -1,20 +1,20 @@
-// Bodega R-56 — Módulo 1 (Dashboard) + Módulo 2 (Login con roles) — Lógica de la app
+// Bodega R-56 — Módulo 1: Dashboard — Lógica de la app
 //
 // CONFIGURACIÓN: pega aquí la URL de tu Apps Script publicado como app web
 // (Implementar > Nueva implementación > Aplicación web).
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzcXtBzWwZqWpBw7OdA-tLWYxR6g6RmSWUzCb9HQwFQK4yG9VnYtIHdipS3p7SIA7poLg/exec';
 
+// Mismo nombre de base de datos que usa app-manifiesto.js (Módulo 3) — así
+// comparten la sesión entre pantallas: inicias sesión una vez y sirve en
+// todas. DB_VERSION subió de 2 a 3 para agregar los stores del Módulo 3
+// (manifiestosCache y pendientes) — ambos archivos declaran los mismos 4
+// stores para que no importe cuál abra la base primero.
 const DB_NAME = 'r56-dashboard';
-const DB_VERSION = 3; // subido de 2 a 3: la sesión ahora también guarda rol y usuarioKey
+const DB_VERSION = 3;
 const STORE_SNAPSHOTS = 'snapshots';
 const STORE_SESION = 'sesion';
-
-// Nombres amigables por rol, para el saludo y las pantallas placeholder.
-const ETIQUETA_ROL = {
-  admin: 'Administración',
-  ventas: 'Ventas',
-  almacen: 'Almacén'
-};
+const STORE_MANIFIESTOS = 'manifiestosCache';
+const STORE_PENDIENTES = 'pendientes';
 
 // ---------- IndexedDB ----------
 
@@ -28,6 +28,12 @@ function abrirDB() {
       }
       if (!db.objectStoreNames.contains(STORE_SESION)) {
         db.createObjectStore(STORE_SESION, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(STORE_MANIFIESTOS)) {
+        db.createObjectStore(STORE_MANIFIESTOS, { keyPath: 'fecha' });
+      }
+      if (!db.objectStoreNames.contains(STORE_PENDIENTES)) {
+        db.createObjectStore(STORE_PENDIENTES, { keyPath: 'id', autoIncrement: true });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -55,11 +61,11 @@ async function leerUltimoSnapshot(fecha) {
   });
 }
 
-async function guardarSesion(token, nombre, rol, usuarioKey) {
+async function guardarSesion(token, nombre, rol) {
   const db = await abrirDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_SESION, 'readwrite');
-    tx.objectStore(STORE_SESION).put({ id: 'actual', token, nombre, rol, usuarioKey });
+    tx.objectStore(STORE_SESION).put({ id: 'actual', token, nombre, rol });
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
@@ -197,85 +203,35 @@ function llamarJSONP(url, timeoutMs = 10000) {
   });
 }
 
-// ---------- Sesión / Login / Roles ----------
+// ---------- Sesión / Login ----------
 //
-// Sin token válido, el backend no entrega datos (ver Codigo.gs). Aquí
-// manejamos: mostrar login, guardar el token+rol que nos regresa el
-// backend al autenticarnos, enrutar según rol, y cerrar sesión.
+// Sin token válido, el backend no entrega ningún dato (ver Code.gs). Aquí
+// solo manejamos: mostrar login, guardar el token que nos regresa el
+// backend al autenticarnos, y mandarlo en cada consulta.
 
-let sesionActual = null; // { token, nombre, rol, usuarioKey }
+let tokenActual = null;
 let temporizadorRefresco = null;
 
-function ocultarTodasLasVistas() {
-  document.getElementById('login-view').hidden = true;
+function mostrarLogin() {
+  document.getElementById('login-view').hidden = false;
   document.getElementById('dashboard-view').hidden = true;
-  document.getElementById('home-view').hidden = true;
   if (temporizadorRefresco) clearInterval(temporizadorRefresco);
 }
 
-function mostrarLogin() {
-  ocultarTodasLasVistas();
-  document.getElementById('login-view').hidden = false;
-}
-
 function mostrarDashboard() {
-  ocultarTodasLasVistas();
+  document.getElementById('login-view').hidden = true;
   document.getElementById('dashboard-view').hidden = false;
-  pintarBarraUsuario('dashboard');
 }
 
-function mostrarHome() {
-  ocultarTodasLasVistas();
-  document.getElementById('home-view').hidden = false;
-  pintarBarraUsuario('home');
+async function iniciarSesionConToken(token) {
+  tokenActual = token;
+  mostrarDashboard();
+  await cargarDashboard();
 
-  const rolLabel = ETIQUETA_ROL[sesionActual.rol] || sesionActual.rol;
-  document.getElementById('home-saludo').textContent = `Hola, ${sesionActual.nombre}`;
-  document.getElementById('home-rol').textContent = rolLabel;
-}
-
-function pintarBarraUsuario(vista) {
-  const prefijo = vista === 'dashboard' ? 'dash' : 'home';
-  const elNombre = document.getElementById(`${prefijo}-usuario-nombre`);
-  const elRol = document.getElementById(`${prefijo}-usuario-rol`);
-  if (elNombre) elNombre.textContent = sesionActual.nombre;
-  if (elRol) elRol.textContent = ETIQUETA_ROL[sesionActual.rol] || sesionActual.rol;
-}
-
-/**
- * Después de un login exitoso (o al recuperar sesión guardada), decide a
- * qué pantalla mandar a la persona según su rol. Por ahora solo existe el
- * Dashboard (Módulo 1); admin y ventas lo ven. Almacén ve una pantalla de
- * bienvenida mientras se construye su módulo (Módulo 5).
- */
-async function enrutarSegunRol() {
-  if (sesionActual.rol === 'admin' || sesionActual.rol === 'ventas') {
-    mostrarDashboard();
-    await cargarDashboard();
-    if (temporizadorRefresco) clearInterval(temporizadorRefresco);
-    // Refresca solo cada 20 segundos en automático — se siente casi en
-    // tiempo real sin exagerar las llamadas al backend.
-    temporizadorRefresco = setInterval(cargarDashboard, 20000);
-  } else {
-    mostrarHome();
-  }
-}
-
-async function iniciarSesionConDatos(token, nombre, rol, usuarioKey) {
-  sesionActual = { token, nombre, rol, usuarioKey };
-  await enrutarSegunRol();
-}
-
-async function cerrarSesion() {
-  if (sesionActual && sesionActual.token) {
-    // Avisa al backend para invalidar el token también del lado del
-    // servidor. Si no hay internet, no pasa nada grave: el token nomás
-    // expira solo a las 12 horas.
-    llamarJSONP(`${APPS_SCRIPT_URL}?action=logout&token=${encodeURIComponent(sesionActual.token)}`).catch(() => {});
-  }
-  await borrarSesion();
-  sesionActual = null;
-  mostrarLogin();
+  if (temporizadorRefresco) clearInterval(temporizadorRefresco);
+  // Refresca solo cada 20 segundos en automático — se siente casi en
+  // tiempo real sin exagerar las llamadas al backend.
+  temporizadorRefresco = setInterval(cargarDashboard, 20000);
 }
 
 document.getElementById('login-form').addEventListener('submit', async (ev) => {
@@ -298,18 +254,14 @@ document.getElementById('login-form').addEventListener('submit', async (ev) => {
       return;
     }
 
-    await guardarSesion(data.token, data.nombre, data.rol, data.usuarioKey);
-    await iniciarSesionConDatos(data.token, data.nombre, data.rol, data.usuarioKey);
+    await guardarSesion(data.token, data.nombre, data.rol);
+    await iniciarSesionConToken(data.token);
   } catch (err) {
     errorBox.textContent = 'Sin conexión. Intenta de nuevo.';
   } finally {
     boton.disabled = false;
     boton.textContent = 'Iniciar sesión';
   }
-});
-
-document.querySelectorAll('.btn-logout').forEach((btn) => {
-  btn.addEventListener('click', cerrarSesion);
 });
 
 // ---------- Carga principal del dashboard ----------
@@ -323,13 +275,12 @@ async function cargarDashboard() {
   }
 
   try {
-    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=dashboard&fecha=${fecha}&token=${encodeURIComponent(sesionActual.token)}`);
+    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=dashboard&fecha=${fecha}&token=${encodeURIComponent(tokenActual)}`);
 
     if (data.error === 'no_autorizado') {
-      // La sesión ya no es válida (expiró, se borró, o el rol ya no
-      // tiene acceso al dashboard) — regresamos al login.
+      // La sesión ya no es válida (expiró o se borró) — regresamos al login.
       await borrarSesion();
-      sesionActual = null;
+      tokenActual = null;
       mostrarLogin();
       return;
     }
@@ -360,7 +311,7 @@ document.getElementById('refrescar').addEventListener('click', () => {
 // esperar al temporizador si alguien acaba de registrar algo en otra
 // pantalla y regresa al Dashboard a revisar.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && sesionActual && sesionActual.rol !== 'almacen') {
+  if (document.visibilityState === 'visible' && tokenActual) {
     cargarDashboard();
   }
 });
@@ -372,14 +323,12 @@ if ('serviceWorker' in navigator) {
 }
 
 // ---------- Arranque ----------
-// Si ya había una sesión guardada en este dispositivo, entra directo según
-// su rol. Si no, muestra el login. (Esto es lo que permite abrir el PWA
-// sin internet y seguir viendo lo último que se guardó.)
+// Si ya había una sesión guardada en este dispositivo, entra directo al
+// Dashboard. Si no, muestra el login.
 (async function arrancar() {
   const sesion = await leerSesion().catch(() => null);
-  if (sesion && sesion.token && sesion.rol) {
-    sesionActual = sesion;
-    await enrutarSegunRol();
+  if (sesion && sesion.token) {
+    await iniciarSesionConToken(sesion.token);
   } else {
     mostrarLogin();
   }

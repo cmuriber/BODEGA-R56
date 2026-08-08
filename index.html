@@ -66,7 +66,21 @@
     margin-top: 4px;
   }
 
+  /* --- Nav a otros módulos --- */
+  .nav-link {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-decoration: none;
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    white-space: nowrap;
+  }
+
   /* --- Sello: estado de sincronización, guiño al vale sellado del negocio --- */
+  .top-derecha { display: flex; align-items: center; gap: 8px; }
   .sello-wrap { display: flex; align-items: center; }
   #sello {
     font-family: 'Barlow Condensed', sans-serif;
@@ -244,41 +258,6 @@
     button#refrescar { transition: none; }
   }
 
-  /* ============ USUARIO / CERRAR SESIÓN ============ */
-  .userbar {
-    display: flex;
-    justify-content: flex-end;
-    padding: 14px 20px 0;
-  }
-  .usuario-badge {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .usuario-info { text-align: right; }
-  .usuario-nombre {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-  }
-  .usuario-rol {
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--dorado);
-  }
-  .btn-logout {
-    background: none;
-    border: 1px solid var(--card-border);
-    color: var(--text-dim);
-    font-size: 11px;
-    letter-spacing: 0.04em;
-    border-radius: 8px;
-    padding: 6px 10px;
-    cursor: pointer;
-  }
-  .btn-logout:active { background: var(--card); }
-
   /* ============ PANTALLA DE LOGIN ============ */
   #login-view {
     min-height: 100dvh;
@@ -385,48 +364,6 @@
   button#login-submit:disabled { opacity: 0.6; }
 
   #dashboard-view[hidden] { display: none; }
-
-  /* ============ PANTALLA HOME (roles sin módulo propio todavía) ============ */
-  #home-view {
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-  }
-  #home-view[hidden] { display: none; }
-
-  .home-cuerpo {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 24px;
-    gap: 8px;
-  }
-  #home-saludo {
-    font-family: 'Playfair Display', serif;
-    font-size: 26px;
-    font-weight: 700;
-  }
-  .home-rol-badge {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 12px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--dorado);
-    border: 1px solid rgba(212,175,55,0.35);
-    border-radius: 20px;
-    padding: 4px 14px;
-    margin-top: 4px;
-  }
-  .home-mensaje {
-    color: var(--text-dim);
-    font-size: 14px;
-    max-width: 280px;
-    margin-top: 14px;
-    line-height: 1.5;
-  }
 </style>
 </head>
 <body>
@@ -452,48 +389,19 @@
     </form>
   </section>
 
-  <div id="home-view" hidden>
-    <div class="userbar">
-      <div class="usuario-badge">
-        <div class="usuario-info">
-          <div class="usuario-nombre" id="home-usuario-nombre">—</div>
-          <div class="usuario-rol" id="home-usuario-rol">—</div>
-        </div>
-        <button class="btn-logout">Salir</button>
-      </div>
-    </div>
-    <div class="top">
-      <div>
-        <div class="marca">Bodega R-56</div>
-      </div>
-    </div>
-    <div class="home-cuerpo">
-      <div id="home-saludo">—</div>
-      <div class="home-rol-badge" id="home-rol">—</div>
-      <div class="home-mensaje">Tu módulo todavía se está construyendo. En cuanto esté listo, aquí vas a ver tus pantallas de trabajo.</div>
-    </div>
-  </div>
-
   <div id="dashboard-view" hidden>
-
-  <div class="userbar">
-    <div class="usuario-badge">
-      <div class="usuario-info">
-        <div class="usuario-nombre" id="dash-usuario-nombre">—</div>
-        <div class="usuario-rol" id="dash-usuario-rol">—</div>
-      </div>
-      <button class="btn-logout">Salir</button>
-    </div>
-  </div>
 
   <div class="top">
     <div>
       <div class="marca">Bodega R-56</div>
       <div id="fecha-label">—</div>
     </div>
-    <div class="sello-wrap">
-      <button id="refrescar" aria-label="Actualizar">⟳</button>
-      <div id="sello">AL DÍA</div>
+    <div class="top-derecha">
+      <a class="nav-link" href="./manifiesto.html">Manifiesto</a>
+      <div class="sello-wrap">
+        <button id="refrescar" aria-label="Actualizar">⟳</button>
+        <div id="sello">AL DÍA</div>
+      </div>
     </div>
   </div>
 
