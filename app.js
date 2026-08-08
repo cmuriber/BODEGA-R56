@@ -2,12 +2,12 @@
 //
 // CONFIGURACIÓN: pega aquí la URL de tu Apps Script publicado como app web
 // (Implementar > Nueva implementación > Aplicación web).
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw1LznKsdVxOs27P6Dgb0gC9E1xxAV0Pjip4fNZMdnR4J8AI3xoFiAUchXQiO6CZwwFug/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzcXtBzWwZqWpBw7OdA-tLWYxR6g6RmSWUzCb9HQwFQK4yG9VnYtIHdipS3p7SIA7poLg/exec';
 
 const DB_NAME = 'r56-dashboard';
 const STORE_NAME = 'snapshots';
 
-// ---------- IndexedDB: guarda el último dashboard bueno conocidoO ----------
+// ---------- IndexedDB: guarda el último dashboard bueno conocido ----------
 
 function abrirDB() {
   return new Promise((resolve, reject) => {
