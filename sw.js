@@ -2,7 +2,7 @@
 // Cachea el shell de la app para que abra sin internet. Los datos del
 // dashboard se manejan aparte con IndexedDB (ver app.js).
 
-const CACHE_NAME = 'r56-dashboard-v3';
+const CACHE_NAME = 'r56-dashboard-v4';
 const SHELL_FILES = [
   './index.html',
   './app.js',
