@@ -195,4 +195,17 @@ if ('serviceWorker' in navigator) {
 }
 
 cargarDashboard();
-setInterval(cargarDashboard, 60000);
+
+// Refresca solo cada 20 segundos en automático (antes 60s) — se siente
+// casi en tiempo real sin exagerar las llamadas al backend.
+setInterval(cargarDashboard, 20000);
+
+// Además, refresca al instante cada vez que la pantalla vuelve a estar
+// visible (ej. el usuario cambió de app o de pestaña y regresa) — así no
+// hay que esperar al temporizador si alguien acaba de registrar algo en
+// otra pantalla y regresa al Dashboard a revisar.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    cargarDashboard();
+  }
+});
