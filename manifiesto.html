@@ -423,6 +423,27 @@
     border-top: 1px solid var(--card-border);
   }
   .compendio-total .num { font-size: 28px; color: var(--tallo); font-family: 'Barlow Condensed', sans-serif; font-weight: 700; }
+
+  /* ---------- Aviso flotante (confirma que algo se guardó) ---------- */
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(90px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    max-width: calc(100% - 40px);
+    background: var(--tallo);
+    color: #14120E;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: center;
+    padding: 10px 18px;
+    border-radius: 20px;
+    z-index: 60;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  #toast[hidden] { display: none; }
+  #toast.toast--pendiente { background: var(--ambar); }
 </style>
 </head>
 <body>
@@ -552,6 +573,8 @@
       <button class="btn-primario" id="btn-cerrar-compendio" type="button" style="margin-top: 16px;">Listo</button>
     </div>
   </div>
+
+  <div id="toast" hidden></div>
 
   <script src="./app-manifiesto.js"></script>
 </body>

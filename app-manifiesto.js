@@ -268,6 +268,19 @@ function marcarEstadoConexion(ok) {
   chip.classList.toggle('offline', !ok);
 }
 
+// Aviso flotante para confirmar visualmente que algo se guardó — antes no
+// había ninguna señal de esto y parecía que el botón "no hacía nada".
+let toastTimer = null;
+function mostrarAviso(mensaje, { pendiente = false } = {}) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = mensaje;
+  toast.classList.toggle('toast--pendiente', pendiente);
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, 3000);
+}
+
 // ---------- Llamada al backend vía JSONP (idéntico al Dashboard) ----------
 
 let jsonpContador = 0;
@@ -619,6 +632,7 @@ async function crearManifiesto(agricultor, carro) {
       if (!data.ok) { alert(data.error || 'No se pudo crear el manifiesto.'); return; }
       await refrescarDesdeBackend();
       abrirDetalle(data.manifiestoId);
+      mostrarAviso('Carro creado ✓');
       return;
     } catch (err) {
       // sin conexión a media llamada — cae al camino offline de abajo
@@ -638,6 +652,7 @@ async function crearManifiesto(agricultor, carro) {
   await guardarCacheDia();
   renderizarListaCarros();
   abrirDetalle(idLocal);
+  mostrarAviso('Carro guardado en el celular — pendiente de sincronizar', { pendiente: true });
 }
 
 // ---------- Acción: nave (crear / modificar) ----------
@@ -737,6 +752,7 @@ async function guardarNave(manifiestoId, naveLocalId, datos) {
       await enviarNaveAlBackend(manifiestoId, idReal, datos);
       await refrescarDesdeBackend();
       cerrarModalNave();
+      mostrarAviso('Nave guardada ✓');
       return;
     } catch (err) {
       if (err.message === 'no_autorizado') {
@@ -780,6 +796,7 @@ async function guardarNave(manifiestoId, naveLocalId, datos) {
   renderizarDetalle(manifiesto);
   renderizarListaCarros();
   cerrarModalNave();
+  mostrarAviso('Nave guardada en el celular — pendiente de sincronizar', { pendiente: true });
 }
 
 // ---------- Acción: finalizar manifiesto ----------
@@ -802,6 +819,7 @@ async function finalizarManifiesto(manifiestoId) {
       if (data.error === 'no_autorizado') { await volverALogin(); return; }
       if (!data.ok) { alert(data.error || 'No se pudo finalizar.'); return; }
       await refrescarDesdeBackend();
+      mostrarAviso('Manifiesto finalizado y sincronizado ✓');
       mostrarCompendio(data.compendio);
       return;
     } catch (err) {
@@ -817,6 +835,7 @@ async function finalizarManifiesto(manifiestoId) {
   await guardarCacheDia();
   renderizarListaCarros();
   renderizarDetalle(manifiesto);
+  mostrarAviso('Finalizado en el celular — pendiente de sincronizar', { pendiente: true });
   mostrarCompendio(calcularCompendioLocal(manifiesto));
 }
 
@@ -942,9 +961,14 @@ async function sincronizar() {
 window.addEventListener('online', sincronizar);
 setInterval(sincronizar, 20000);
 document.addEventListener('visibilitychange', () => {
+  // OJO: antes esto llamaba sincronizar() y refrescarDesdeBackend() al
+  // mismo tiempo sin esperar una a la otra. sincronizar() ya termina
+  // llamando refrescarDesdeBackend() por su cuenta — llamarla otra vez en
+  // paralelo podía traer del servidor una lista TODAVÍA sin los pendientes
+  // recién sincronizados y sobreescribir la vista local, haciendo que un
+  // carro que sí se había guardado pareciera haber desaparecido.
   if (document.visibilityState === 'visible' && tokenActual) {
     sincronizar();
-    refrescarDesdeBackend();
   }
 });
 
