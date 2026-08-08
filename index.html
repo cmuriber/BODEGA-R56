@@ -23,15 +23,6 @@
     --dorado-dim: #8A6E1F;
     --text: #F3EEE4;
     --text-dim: #A69C8C;
-
-    /* Paleta clara — pantalla del Dashboard */
-    --crema: #F3EEE4;
-    --crema-carta: #FFFFFF;
-    --crema-borde: #E4DCC8;
-    --tinta: #241F1A;
-    --tinta-dim: #837A6B;
-    --rojo: #C0392B;
-    --oro: #B8912A;
   }
 
   * { box-sizing: border-box; }
@@ -47,45 +38,32 @@
 
   body {
     min-height: 100dvh;
-  }
-
-  #dashboard-view {
-    background: var(--crema);
-    color: var(--tinta);
-    min-height: 100dvh;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
-  }
-
-  .dash-inner {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(24px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
     max-width: 480px;
     margin: 0 auto;
   }
 
-  /* --- Barra superior oscura, hace juego con la pantalla de acceso --- */
   .top {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    background: var(--bg);
-    padding: calc(18px + env(safe-area-inset-top)) 20px 18px;
+    padding: 20px 20px 0;
   }
 
   .marca {
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
-    font-size: 14px;
-    letter-spacing: 0.16em;
-    color: var(--dorado);
+    font-size: 15px;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
     text-transform: uppercase;
   }
 
   #fecha-label {
-    font-family: 'Playfair Display', serif;
-    font-size: 19px;
+    font-size: 18px;
     font-weight: 600;
     text-transform: capitalize;
     margin-top: 4px;
-    color: var(--text);
   }
 
   /* --- Sello: estado de sincronización, guiño al vale sellado del negocio --- */
@@ -93,13 +71,13 @@
   #sello {
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
-    font-size: 10px;
-    letter-spacing: 0.06em;
+    font-size: 11px;
+    letter-spacing: 0.08em;
     color: var(--tallo);
     border: 2px solid var(--tallo);
     border-radius: 50%;
-    width: 54px;
-    height: 54px;
+    width: 60px;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -128,83 +106,101 @@
   #error-box {
     margin: 16px 20px 0;
     padding: 10px 14px;
-    background: #FBEFD9;
-    border: 1px solid var(--oro);
-    color: #7A5A0F;
+    background: rgba(224, 165, 38, 0.15);
+    border: 1px solid var(--ambar);
+    color: var(--ambar);
     font-size: 13px;
     border-radius: 10px;
   }
   #error-box[hidden] { display: none; }
 
-  /* --- Tarjetas planas con acento de color, estilo "cifra de negocio" --- */
+  /* --- Hero: la cifra que más importa a las 6am --- */
+  .hero {
+    margin: 20px 20px 0;
+    padding: 28px 24px;
+    background: linear-gradient(160deg, var(--tomate) 0%, var(--tomate-dim) 100%);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    right: -30px; top: -30px;
+    width: 140px; height: 140px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+  }
+  .hero-label {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    font-weight: 600;
+  }
+  .hero-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 76px;
+    line-height: 1;
+    margin: 4px 0 0;
+    color: #FFF8F0;
+  }
+  .hero-unidad {
+    font-size: 18px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+    margin-left: 6px;
+  }
+  #hero-sub {
+    margin-top: 10px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.85);
+  }
+
+  /* --- Grid de stats secundarios --- */
   .grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    margin: 20px 20px 0;
+    margin: 16px 20px 0;
   }
   .stat {
-    background: var(--crema-carta);
-    border: 1px solid var(--crema-borde);
-    border-bottom: 4px solid var(--tinta);
-    border-radius: 12px;
-    padding: 16px 16px 14px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 14px 16px;
   }
   .stat-label {
-    font-size: 10.5px;
-    letter-spacing: 0.07em;
+    font-size: 11px;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--tinta-dim);
-    font-weight: 700;
+    color: var(--text-dim);
+    font-weight: 600;
   }
   .stat-val {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 700;
-    margin-top: 3px;
-    color: var(--tinta);
-  }
-  .stat-sub {
-    font-size: 11.5px;
-    color: var(--tinta-dim);
     margin-top: 2px;
   }
+  .stat--efectivo { grid-column: span 2; border-color: var(--tallo); }
+  .stat--efectivo .stat-val { color: var(--tallo); }
 
-  .stat--cajas { grid-column: span 2; border-bottom-color: var(--tinta); }
-  .stat--cajas .stat-val { font-size: 46px; }
-
-  .stat--contado { border-bottom-color: var(--rojo); }
-  .stat--contado .stat-val { color: var(--rojo); }
-
-  .stat--credito { border-bottom-color: var(--oro); }
-  .stat--credito .stat-val { color: var(--oro); }
-
-  .stat--cobranza { border-bottom-color: var(--tinta); }
-
-  .stat--gastos { border-bottom-color: var(--rojo); }
-  .stat--gastos .stat-val { color: var(--rojo); }
-
-  .stat--efectivo {
-    grid-column: span 2;
-    border-bottom-color: var(--oro);
-    background: #FFFCF3;
-  }
-  .stat--efectivo .stat-val { color: var(--oro); font-size: 32px; }
-
-  /* --- Manifiestos abiertos --- */
+  /* --- Manifiestos abiertos, estilo talón de vale --- */
   .section-head {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin: 26px 20px 8px;
+    margin: 24px 20px 8px;
   }
   .section-title {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
     font-size: 19px;
-    color: var(--tinta);
+    letter-spacing: 0.02em;
   }
-  #manifiestos-count { font-size: 12px; color: var(--tinta-dim); }
+  #manifiestos-count { font-size: 12px; color: var(--text-dim); }
 
   ul#manifiestos-lista {
     list-style: none;
@@ -215,8 +211,8 @@
     gap: 8px;
   }
   .ticket {
-    background: var(--crema-carta);
-    border: 1px dashed var(--crema-borde);
+    background: var(--card);
+    border: 1px dashed var(--card-border);
     border-radius: 10px;
     padding: 12px 14px;
     display: flex;
@@ -228,23 +224,19 @@
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
     font-size: 17px;
-    color: var(--rojo);
+    color: var(--tomate);
   }
-  .ticket-agricultor { color: var(--tinta-dim); }
+  .ticket-agricultor { color: var(--text-dim); }
   li.vacio {
-    color: var(--tinta-dim);
+    color: var(--text-dim);
     font-size: 14px;
-    padding: 20px 14px;
-    text-align: center;
-    background: var(--crema-carta);
-    border: 1px dashed var(--crema-borde);
-    border-radius: 10px;
+    padding: 12px 14px;
   }
 
   #actualizado {
-    margin: 22px 20px 0;
+    margin: 20px 20px 0;
     font-size: 12px;
-    color: var(--tinta-dim);
+    color: var(--text-dim);
     text-align: center;
   }
 
@@ -384,7 +376,6 @@
   </section>
 
   <div id="dashboard-view" hidden>
-  <div class="dash-inner">
 
   <div class="top">
     <div>
@@ -399,25 +390,26 @@
 
   <div id="error-box" hidden></div>
 
+  <section class="hero">
+    <div class="hero-label">Cajas vendidas hoy</div>
+    <div><span class="hero-num" id="hero-cajas">0</span><span class="hero-unidad">cajas</span></div>
+    <div id="hero-sub">—</div>
+  </section>
+
   <div class="grid">
-    <div class="stat stat--cajas">
-      <div class="stat-label">Cajas vendidas hoy</div>
-      <div class="stat-val" id="hero-cajas">0</div>
-      <div class="stat-sub" id="hero-sub">—</div>
-    </div>
-    <div class="stat stat--contado">
+    <div class="stat">
       <div class="stat-label">Contado</div>
       <div class="stat-val" id="stat-contado">$0</div>
     </div>
-    <div class="stat stat--credito">
+    <div class="stat">
       <div class="stat-label">Crédito</div>
       <div class="stat-val" id="stat-credito">$0</div>
     </div>
-    <div class="stat stat--cobranza">
+    <div class="stat">
       <div class="stat-label">Cobranza del día</div>
       <div class="stat-val" id="stat-cobranza">$0</div>
     </div>
-    <div class="stat stat--gastos">
+    <div class="stat">
       <div class="stat-label">Gastos</div>
       <div class="stat-val" id="stat-gastos">$0</div>
     </div>
@@ -435,7 +427,6 @@
 
   <div id="actualizado">—</div>
 
-  </div>
   </div>
 
   <script src="./app.js"></script>
