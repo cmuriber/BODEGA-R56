@@ -9,7 +9,7 @@
 <link rel="icon" href="./icon.svg">
 <link rel="apple-touch-icon" href="./icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #1B1917;
@@ -19,6 +19,8 @@
     --tomate-dim: #7A2E1F;
     --tallo: #6B8F5C;
     --ambar: #E0A526;
+    --dorado: #D4AF37;
+    --dorado-dim: #8A6E1F;
     --text: #F3EEE4;
     --text-dim: #A69C8C;
   }
@@ -241,9 +243,139 @@
   @media (prefers-reduced-motion: reduce) {
     button#refrescar { transition: none; }
   }
+
+  /* ============ PANTALLA DE LOGIN ============ */
+  #login-view {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(212,175,55,0.06), transparent 60%),
+      var(--bg);
+  }
+  #login-view[hidden] { display: none; }
+
+  .login-card {
+    width: 100%;
+    max-width: 360px;
+    background: linear-gradient(165deg, #221F1B 0%, #16140F 100%);
+    border: 1px solid rgba(212,175,55,0.25);
+    border-radius: 18px;
+    padding: 36px 28px 28px;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 56px; height: 3px;
+    border-radius: 0 0 4px 4px;
+    background: linear-gradient(90deg, var(--dorado-dim), var(--dorado));
+  }
+
+  .login-eyebrow {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--dorado);
+    text-align: center;
+    font-weight: 700;
+  }
+  .login-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 30px;
+    font-weight: 700;
+    text-align: center;
+    margin: 6px 0 4px;
+    color: var(--text);
+  }
+  .login-sub {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 26px;
+  }
+
+  .login-field { margin-bottom: 16px; }
+  .login-field label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .login-field input {
+    width: 100%;
+    background: #14120E;
+    border: 1px solid rgba(212,175,55,0.2);
+    border-radius: 10px;
+    padding: 13px 14px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  .login-field input:focus {
+    outline: none;
+    border-color: var(--dorado);
+  }
+
+  #login-error {
+    color: #E88A6B;
+    font-size: 13px;
+    text-align: center;
+    margin: -4px 0 14px;
+    min-height: 16px;
+  }
+
+  button#login-submit {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #E8C766, var(--dorado) 60%, #B8912A);
+    color: #1B1917;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  button#login-submit:disabled { opacity: 0.6; }
+
+  #dashboard-view[hidden] { display: none; }
 </style>
 </head>
 <body>
+
+  <section id="login-view">
+    <form class="login-card" id="login-form">
+      <div class="login-eyebrow">Sistema · Acceso</div>
+      <div class="login-title">Bienvenido</div>
+      <div class="login-sub">Ingresa tus credenciales para continuar</div>
+
+      <div class="login-field">
+        <label for="login-usuario">Usuario</label>
+        <input type="text" id="login-usuario" autocomplete="username" autocapitalize="off" required>
+      </div>
+      <div class="login-field">
+        <label for="login-password">Contraseña</label>
+        <input type="password" id="login-password" autocomplete="current-password" required>
+      </div>
+
+      <div id="login-error"></div>
+
+      <button type="submit" id="login-submit">Iniciar sesión</button>
+    </form>
+  </section>
+
+  <div id="dashboard-view" hidden>
 
   <div class="top">
     <div>
@@ -294,6 +426,8 @@
   <ul id="manifiestos-lista"></ul>
 
   <div id="actualizado">—</div>
+
+  </div>
 
   <script src="./app.js"></script>
 </body>
