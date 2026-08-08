@@ -637,9 +637,11 @@ document.getElementById('btn-guardar-nave').addEventListener('click', async () =
   const invernadero = document.getElementById('nave-invernadero').value.trim();
   const letra = document.getElementById('nave-letra').value.trim();
   const semilla = document.getElementById('nave-semilla').value.trim();
+  const errorBox = document.getElementById('nave-error');
+  const boton = document.getElementById('btn-guardar-nave');
 
   if (!invernadero && !letra && !semilla) {
-    document.getElementById('nave-error').textContent = 'Captura al menos invernadero, letra o semilla.';
+    errorBox.textContent = 'Captura al menos invernadero, letra o semilla.';
     return;
   }
 
@@ -648,7 +650,20 @@ document.getElementById('btn-guardar-nave').addEventListener('click', async () =
     datos[c.param] = Number(document.getElementById('campo-' + c.param).value) || 0;
   });
 
-  await guardarNave(manifiestoModalId, naveEditandoId, datos);
+  errorBox.textContent = '';
+  boton.disabled = true;
+  boton.textContent = 'Guardando...';
+  try {
+    await guardarNave(manifiestoModalId, naveEditandoId, datos);
+  } catch (err) {
+    // Cualquier error inesperado se ve aquí en vez de que el botón se
+    // quede sin hacer nada — así sabemos exactamente qué falló.
+    console.error('Error al guardar la nave:', err);
+    errorBox.textContent = 'No se pudo guardar: ' + (err && err.message ? err.message : String(err));
+  } finally {
+    boton.disabled = false;
+    boton.textContent = 'OK / Ingresar';
+  }
 });
 
 async function enviarNaveAlBackend(manifiestoId, naveId, datos) {
@@ -667,7 +682,11 @@ async function enviarNaveAlBackend(manifiestoId, naveId, datos) {
 
 async function guardarNave(manifiestoId, naveLocalId, datos) {
   const manifiesto = obtenerManifiestoLocal(manifiestoId);
-  if (!manifiesto) return;
+  if (!manifiesto) {
+    document.getElementById('nave-error').textContent =
+      'No encontré este manifiesto en memoria. Cierra este formulario, regresa a "Camiones de hoy" y vuelve a entrar al carro.';
+    return;
+  }
 
   const naveExistente = naveLocalId ? (manifiesto.naves || []).find(n => n.id === naveLocalId) : null;
   const manifiestoTemp = String(manifiestoId).startsWith('tmp-');
@@ -680,8 +699,17 @@ async function guardarNave(manifiestoId, naveLocalId, datos) {
       cerrarModalNave();
       return;
     } catch (err) {
-      if (err.message === 'no_autorizado') return;
-      // sin conexión a media llamada — cae al camino offline de abajo
+      if (err.message === 'no_autorizado') {
+        // La sesión ya no es válida — volverALogin() ya cambió de pantalla,
+        // pero el modal vive fuera de #app-view y hay que cerrarlo a mano
+        // para que no se quede pegado tapando el login.
+        cerrarModalNave();
+        return;
+      }
+      // Error real del backend (no de sesión): lo dejamos ver en consola y
+      // caemos al camino offline de abajo, que encola la nave para
+      // reintentar más tarde y sí le avisa al usuario que quedó pendiente.
+      console.warn('nave_guardar en línea falló, se encola para reintentar:', err.message);
     }
   }
 
