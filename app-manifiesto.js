@@ -47,31 +47,9 @@ let sincronizando = false;
 
 // ---------- IndexedDB ----------
 
-// Dashboard (app.js) y esta pantalla comparten la misma base IndexedDB. Si
-// se deja una pestaña vieja abierta con una versión anterior de la base
-// (ej. el Dashboard cacheado por el Service Worker antes de esta
-// actualización), un intento de abrir una versión más nueva se queda
-// "bloqueado" en silencio para siempre — eso es lo que hacía que el botón
-// de guardar pareciera no hacer nada. dbPromise se cachea para no abrir una
-// conexión nueva cada vez, y se cierra sola si otra pestaña necesita subir
-// de versión, y truena con un mensaje claro después de 6s en vez de
-// quedarse colgado.
-let dbPromise = null;
-
 function abrirDB() {
-  if (dbPromise) return dbPromise;
-
-  dbPromise = new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
-    let resuelto = false;
-
-    const timer = setTimeout(() => {
-      if (!resuelto) {
-        dbPromise = null;
-        reject(new Error('No se pudo abrir la base de datos local (bloqueada por otra pestaña de la app). Cierra todas las demás pestañas/ventanas de Bodega R-56 y vuelve a intentar.'));
-      }
-    }, 6000);
-
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE_SNAPSHOTS)) {
@@ -87,27 +65,9 @@ function abrirDB() {
         db.createObjectStore(STORE_PENDIENTES, { keyPath: 'id', autoIncrement: true });
       }
     };
-    req.onblocked = () => {
-      console.warn('Apertura de IndexedDB bloqueada por otra pestaña con una versión anterior abierta.');
-    };
-    req.onsuccess = () => {
-      resuelto = true;
-      clearTimeout(timer);
-      const db = req.result;
-      // Si OTRA pestaña necesita subir de versión después, esta conexión se
-      // cierra sola en vez de bloquearla a ella.
-      db.onversionchange = () => { db.close(); dbPromise = null; };
-      resolve(db);
-    };
-    req.onerror = () => {
-      resuelto = true;
-      clearTimeout(timer);
-      dbPromise = null;
-      reject(req.error);
-    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
   });
-
-  return dbPromise;
 }
 
 async function guardarSesion(token, nombre, rol) {
@@ -266,19 +226,6 @@ function marcarEstadoConexion(ok) {
   if (!chip) return;
   chip.textContent = ok ? 'AL DÍA' : 'SIN CONEXIÓN';
   chip.classList.toggle('offline', !ok);
-}
-
-// Aviso flotante para confirmar visualmente que algo se guardó — antes no
-// había ninguna señal de esto y parecía que el botón "no hacía nada".
-let toastTimer = null;
-function mostrarAviso(mensaje, { pendiente = false } = {}) {
-  const toast = document.getElementById('toast');
-  if (!toast) return;
-  toast.textContent = mensaje;
-  toast.classList.toggle('toast--pendiente', pendiente);
-  toast.hidden = false;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { toast.hidden = true; }, 3000);
 }
 
 // ---------- Llamada al backend vía JSONP (idéntico al Dashboard) ----------
@@ -457,7 +404,11 @@ function textoBadge(m) {
 
 function renderizarListaCarros() {
   const ul = document.getElementById('lista-carros');
-  const manifiestos = (estadoDia && estadoDia.manifiestos) || [];
+  // Solo los de HOY — el buscador por proveedor puede inyectar en memoria
+  // manifiestos de otras fechas (ver abrirDesdeResultado) y esos no deben
+  // aparecer aquí, solo son alcanzables desde su tarjeta de resultado.
+  const fechaHoy = (estadoDia && estadoDia.fecha) || fechaHoyCDMX();
+  const manifiestos = ((estadoDia && estadoDia.manifiestos) || []).filter(m => !m.fecha || m.fecha === fechaHoy);
 
   if (manifiestos.length === 0) {
     ul.innerHTML = '<li class="vacio">Todavía no hay camiones capturados hoy.</li>';
@@ -480,6 +431,94 @@ function renderizarListaCarros() {
     li.addEventListener('click', () => abrirDetalle(m.id));
     ul.appendChild(li);
   });
+}
+
+// ---------- Buscador por proveedor (cualquier fecha, no solo hoy) ----------
+
+let temporizadorBusqueda = null;
+let ultimaBusquedaId = 0;
+
+document.getElementById('buscar-proveedor').addEventListener('input', (ev) => {
+  const q = ev.target.value.trim();
+  clearTimeout(temporizadorBusqueda);
+
+  const bloqueResultados = document.getElementById('bloque-resultados-busqueda');
+  const bloqueHoy = document.getElementById('bloque-hoy');
+
+  if (!q) {
+    ultimaBusquedaId += 1; // invalida cualquier búsqueda en curso
+    bloqueResultados.hidden = true;
+    bloqueHoy.hidden = false;
+    return;
+  }
+
+  bloqueHoy.hidden = true;
+  bloqueResultados.hidden = false;
+  document.getElementById('buscando-msg').hidden = false;
+  document.getElementById('lista-busqueda').innerHTML = '';
+
+  temporizadorBusqueda = setTimeout(() => ejecutarBusqueda(q), 350);
+});
+
+async function ejecutarBusqueda(q) {
+  const idBusqueda = ++ultimaBusquedaId;
+  try {
+    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=manifiestos_buscar&token=${encodeURIComponent(tokenActual)}&q=${encodeURIComponent(q)}`);
+    if (idBusqueda !== ultimaBusquedaId) return; // el usuario ya siguió escribiendo — esta respuesta ya no aplica
+    if (data.error === 'no_autorizado') { await volverALogin(); return; }
+
+    document.getElementById('buscando-msg').hidden = true;
+    if (!data.ok) {
+      renderizarResultadosBusqueda([], 'No se pudo buscar. Intenta de nuevo.');
+      return;
+    }
+    renderizarResultadosBusqueda(data.manifiestos || []);
+  } catch (err) {
+    if (idBusqueda !== ultimaBusquedaId) return;
+    document.getElementById('buscando-msg').hidden = true;
+    renderizarResultadosBusqueda([], 'Necesitas conexión para buscar.');
+  }
+}
+
+function renderizarResultadosBusqueda(lista, mensajeVacio) {
+  const ul = document.getElementById('lista-busqueda');
+
+  if (lista.length === 0) {
+    ul.innerHTML = `<li class="vacio">${escapeHtml(mensajeVacio || 'Sin resultados.')}</li>`;
+    return;
+  }
+
+  ul.innerHTML = '';
+  lista.forEach(m => {
+    const li = document.createElement('li');
+    li.className = 'carro-card';
+    const numNaves = (m.naves || []).length;
+    li.innerHTML = `
+      <div class="carro-card-top">
+        <span class="carro-carro">Carro ${escapeHtml(m.carro)}</span>
+        <span class="badge ${claseBadge(m)}">${textoBadge(m)}</span>
+      </div>
+      <div class="carro-agricultor">${escapeHtml(m.agricultor)}</div>
+      <div class="carro-meta"><span class="carro-fecha">${escapeHtml(m.fecha)}</span> · ${numNaves} nave${numNaves === 1 ? '' : 's'} · ${m.cajasTotales || 0} cajas</div>
+    `;
+    li.addEventListener('click', () => abrirDesdeResultado(m));
+    ul.appendChild(li);
+  });
+}
+
+// Al abrir un resultado de búsqueda (que puede ser de cualquier fecha, no
+// solo hoy), lo inyectamos al estado en memoria para que abrirDetalle() y
+// todo lo demás (nave nueva, finalizar, reabrir) funcione exactamente
+// igual que con los camiones de hoy, sin duplicar lógica.
+function abrirDesdeResultado(m) {
+  estadoDia = estadoDia || { fecha: fechaHoyCDMX(), manifiestos: [] };
+  const idx = estadoDia.manifiestos.findIndex(x => x.id === m.id);
+  if (idx === -1) {
+    estadoDia.manifiestos.unshift(m);
+  } else {
+    estadoDia.manifiestos[idx] = m;
+  }
+  abrirDetalle(m.id);
 }
 
 // ---------- Render: detalle de un manifiesto ----------
@@ -565,8 +604,14 @@ async function refrescarDesdeBackend() {
     if (data.error === 'no_autorizado') { await volverALogin(); return; }
     if (!data.ok) return;
 
-    estadoDia = { fecha, manifiestos: data.manifiestos };
-    await guardarCache(fecha, data.manifiestos);
+    // Conserva en memoria cualquier manifiesto de OTRA fecha que se haya
+    // abierto desde el buscador por proveedor (ver abrirDesdeResultado),
+    // para no perderlo de golpe si este refresco automático llega mientras
+    // el usuario sigue viendo su detalle.
+    const ajenos = ((estadoDia && estadoDia.manifiestos) || []).filter(m => m.fecha && m.fecha !== fecha);
+
+    estadoDia = { fecha, manifiestos: data.manifiestos.concat(ajenos) };
+    await guardarCache(fecha, estadoDia.manifiestos);
     renderizarListaCarros();
 
     if (vistaActualId) {
@@ -632,7 +677,6 @@ async function crearManifiesto(agricultor, carro) {
       if (!data.ok) { alert(data.error || 'No se pudo crear el manifiesto.'); return; }
       await refrescarDesdeBackend();
       abrirDetalle(data.manifiestoId);
-      mostrarAviso('Carro creado ✓');
       return;
     } catch (err) {
       // sin conexión a media llamada — cae al camino offline de abajo
@@ -652,7 +696,6 @@ async function crearManifiesto(agricultor, carro) {
   await guardarCacheDia();
   renderizarListaCarros();
   abrirDetalle(idLocal);
-  mostrarAviso('Carro guardado en el celular — pendiente de sincronizar', { pendiente: true });
 }
 
 // ---------- Acción: nave (crear / modificar) ----------
@@ -692,11 +735,9 @@ document.getElementById('btn-guardar-nave').addEventListener('click', async () =
   const invernadero = document.getElementById('nave-invernadero').value.trim();
   const letra = document.getElementById('nave-letra').value.trim();
   const semilla = document.getElementById('nave-semilla').value.trim();
-  const errorBox = document.getElementById('nave-error');
-  const boton = document.getElementById('btn-guardar-nave');
 
   if (!invernadero && !letra && !semilla) {
-    errorBox.textContent = 'Captura al menos invernadero, letra o semilla.';
+    document.getElementById('nave-error').textContent = 'Captura al menos invernadero, letra o semilla.';
     return;
   }
 
@@ -705,20 +746,7 @@ document.getElementById('btn-guardar-nave').addEventListener('click', async () =
     datos[c.param] = Number(document.getElementById('campo-' + c.param).value) || 0;
   });
 
-  errorBox.textContent = '';
-  boton.disabled = true;
-  boton.textContent = 'Guardando...';
-  try {
-    await guardarNave(manifiestoModalId, naveEditandoId, datos);
-  } catch (err) {
-    // Cualquier error inesperado se ve aquí en vez de que el botón se
-    // quede sin hacer nada — así sabemos exactamente qué falló.
-    console.error('Error al guardar la nave:', err);
-    errorBox.textContent = 'No se pudo guardar: ' + (err && err.message ? err.message : String(err));
-  } finally {
-    boton.disabled = false;
-    boton.textContent = 'OK / Ingresar';
-  }
+  await guardarNave(manifiestoModalId, naveEditandoId, datos);
 });
 
 async function enviarNaveAlBackend(manifiestoId, naveId, datos) {
@@ -737,11 +765,7 @@ async function enviarNaveAlBackend(manifiestoId, naveId, datos) {
 
 async function guardarNave(manifiestoId, naveLocalId, datos) {
   const manifiesto = obtenerManifiestoLocal(manifiestoId);
-  if (!manifiesto) {
-    document.getElementById('nave-error').textContent =
-      'No encontré este manifiesto en memoria. Cierra este formulario, regresa a "Camiones de hoy" y vuelve a entrar al carro.';
-    return;
-  }
+  if (!manifiesto) return;
 
   const naveExistente = naveLocalId ? (manifiesto.naves || []).find(n => n.id === naveLocalId) : null;
   const manifiestoTemp = String(manifiestoId).startsWith('tmp-');
@@ -752,20 +776,10 @@ async function guardarNave(manifiestoId, naveLocalId, datos) {
       await enviarNaveAlBackend(manifiestoId, idReal, datos);
       await refrescarDesdeBackend();
       cerrarModalNave();
-      mostrarAviso('Nave guardada ✓');
       return;
     } catch (err) {
-      if (err.message === 'no_autorizado') {
-        // La sesión ya no es válida — volverALogin() ya cambió de pantalla,
-        // pero el modal vive fuera de #app-view y hay que cerrarlo a mano
-        // para que no se quede pegado tapando el login.
-        cerrarModalNave();
-        return;
-      }
-      // Error real del backend (no de sesión): lo dejamos ver en consola y
-      // caemos al camino offline de abajo, que encola la nave para
-      // reintentar más tarde y sí le avisa al usuario que quedó pendiente.
-      console.warn('nave_guardar en línea falló, se encola para reintentar:', err.message);
+      if (err.message === 'no_autorizado') return;
+      // sin conexión a media llamada — cae al camino offline de abajo
     }
   }
 
@@ -796,7 +810,6 @@ async function guardarNave(manifiestoId, naveLocalId, datos) {
   renderizarDetalle(manifiesto);
   renderizarListaCarros();
   cerrarModalNave();
-  mostrarAviso('Nave guardada en el celular — pendiente de sincronizar', { pendiente: true });
 }
 
 // ---------- Acción: finalizar manifiesto ----------
@@ -819,7 +832,6 @@ async function finalizarManifiesto(manifiestoId) {
       if (data.error === 'no_autorizado') { await volverALogin(); return; }
       if (!data.ok) { alert(data.error || 'No se pudo finalizar.'); return; }
       await refrescarDesdeBackend();
-      mostrarAviso('Manifiesto finalizado y sincronizado ✓');
       mostrarCompendio(data.compendio);
       return;
     } catch (err) {
@@ -835,7 +847,6 @@ async function finalizarManifiesto(manifiestoId) {
   await guardarCacheDia();
   renderizarListaCarros();
   renderizarDetalle(manifiesto);
-  mostrarAviso('Finalizado en el celular — pendiente de sincronizar', { pendiente: true });
   mostrarCompendio(calcularCompendioLocal(manifiesto));
 }
 
@@ -961,14 +972,9 @@ async function sincronizar() {
 window.addEventListener('online', sincronizar);
 setInterval(sincronizar, 20000);
 document.addEventListener('visibilitychange', () => {
-  // OJO: antes esto llamaba sincronizar() y refrescarDesdeBackend() al
-  // mismo tiempo sin esperar una a la otra. sincronizar() ya termina
-  // llamando refrescarDesdeBackend() por su cuenta — llamarla otra vez en
-  // paralelo podía traer del servidor una lista TODAVÍA sin los pendientes
-  // recién sincronizados y sobreescribir la vista local, haciendo que un
-  // carro que sí se había guardado pareciera haber desaparecido.
   if (document.visibilityState === 'visible' && tokenActual) {
     sincronizar();
+    refrescarDesdeBackend();
   }
 });
 
