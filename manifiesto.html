@@ -271,6 +271,36 @@
   }
   .carro-agricultor { color: var(--text-dim); font-size: 13px; margin-top: 2px; }
   .carro-meta { margin-top: 6px; font-size: 12px; color: var(--text-dim); }
+  .carro-fecha { color: var(--text-dim); font-size: 11px; }
+
+  /* ---------- Buscador por proveedor ---------- */
+  .buscador-seccion { margin: 16px 20px 0; }
+  .buscador-label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .buscador-input {
+    width: 100%;
+    background: #14120E;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 11px 13px;
+    font-size: 14px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  .buscador-input:focus { outline: none; border-color: var(--dorado); }
+  #bloque-resultados-busqueda[hidden] { display: none; }
+  #bloque-hoy[hidden] { display: none; }
+  .buscando-msg {
+    margin: 10px 20px 0;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
 
   .badge {
     font-family: 'Barlow Condensed', sans-serif;
@@ -340,57 +370,70 @@
     margin: 0 auto;
     background: var(--bg);
     border-radius: 20px 20px 0 0;
-    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
-    max-height: 88vh;
+    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
+    max-height: 92vh;
     overflow-y: auto;
     border-top: 1px solid rgba(212,175,55,0.25);
   }
   .modal-titulo {
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
-    font-size: 20px;
-    margin-bottom: 14px;
+    font-size: 18px;
+    margin-bottom: 10px;
   }
-  .campo { margin-bottom: 14px; }
+  .campo { margin-bottom: 10px; }
   .campo label {
     display: block;
-    font-size: 11px;
+    font-size: 10px;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--text-dim);
-    margin-bottom: 5px;
+    margin-bottom: 4px;
   }
   .campo select, .campo input[type=text] {
     width: 100%;
     background: #14120E;
     border: 1px solid var(--card-border);
-    border-radius: 10px;
-    padding: 12px 13px;
-    font-size: 15px;
+    border-radius: 9px;
+    padding: 9px 11px;
+    font-size: 14px;
     color: var(--text);
     font-family: 'Inter', sans-serif;
   }
   .campo select:focus, .campo input:focus { outline: none; border-color: var(--dorado); }
+  /* Modal de nave: los 3 selects (Invernadero/Letra/Semilla) en una sola
+     fila de 3 columnas en vez de apilados — ahorra bastante alto. */
+  #modal-nave .campo-fila3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
 
+  /* Columna izquierda = tamaños principales (XL, LG, MD, Small, Bola),
+     columna derecha = el resto (Segunda, Genérico, Pinto, Canica, Aplical).
+     grid-auto-flow: column + 5 filas fijas logra ese acomodo directo desde
+     el orden de CAMPOS_TAMANO en el JS, sin tener que reordenar nada ahí. */
   .grid-tamanos {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 16px;
+    grid-template-rows: repeat(5, auto);
+    grid-auto-flow: column;
+    gap: 6px 10px;
+    margin-bottom: 12px;
   }
   .campo-tamano label {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--text-dim);
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     display: block;
   }
   .campo-tamano input {
     width: 100%;
     background: #14120E;
     border: 1px solid var(--card-border);
-    border-radius: 8px;
-    padding: 9px 10px;
-    font-size: 15px;
+    border-radius: 7px;
+    padding: 6px 8px;
+    font-size: 14px;
     color: var(--text);
     text-align: center;
     font-family: 'Inter', sans-serif;
@@ -487,10 +530,27 @@
 
     <!-- Vista: lista de camiones del día -->
     <div id="vista-lista">
-      <div class="seccion">
-        <div class="seccion-titulo">Camiones de hoy</div>
+
+      <div class="buscador-seccion">
+        <label for="buscar-proveedor" class="buscador-label">Buscar por proveedor</label>
+        <input type="text" id="buscar-proveedor" class="buscador-input" placeholder="Ej. Ramón" autocomplete="off">
       </div>
-      <ul id="lista-carros"></ul>
+
+      <div id="bloque-resultados-busqueda" hidden>
+        <div class="seccion">
+          <div class="seccion-titulo">Resultados</div>
+        </div>
+        <div class="buscando-msg" id="buscando-msg" hidden>Buscando...</div>
+        <ul id="lista-busqueda"></ul>
+      </div>
+
+      <div id="bloque-hoy">
+        <div class="seccion">
+          <div class="seccion-titulo">Camiones de hoy</div>
+        </div>
+        <ul id="lista-carros"></ul>
+      </div>
+
       <div style="height: 90px;"></div>
       <button class="btn-primario fab-nuevo" id="btn-nuevo-carro" type="button">+ Nuevo Carro</button>
     </div>
@@ -540,17 +600,19 @@
   <div class="modal-fondo" id="modal-nave" hidden>
     <div class="modal-caja">
       <div class="modal-titulo" id="modal-nave-titulo">Nave Nueva</div>
-      <div class="campo">
-        <label for="nave-invernadero">Invernadero</label>
-        <select id="nave-invernadero"></select>
-      </div>
-      <div class="campo">
-        <label for="nave-letra">Letra</label>
-        <select id="nave-letra"></select>
-      </div>
-      <div class="campo">
-        <label for="nave-semilla">Semilla</label>
-        <select id="nave-semilla"></select>
+      <div class="campo-fila3">
+        <div class="campo">
+          <label for="nave-invernadero">Invernadero</label>
+          <select id="nave-invernadero"></select>
+        </div>
+        <div class="campo">
+          <label for="nave-letra">Letra</label>
+          <select id="nave-letra"></select>
+        </div>
+        <div class="campo">
+          <label for="nave-semilla">Semilla</label>
+          <select id="nave-semilla"></select>
+        </div>
       </div>
       <div class="grid-tamanos" id="grid-tamanos"></div>
       <div class="campo-error" id="nave-error"></div>
