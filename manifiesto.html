@@ -302,6 +302,55 @@
     color: var(--text-dim);
   }
 
+  /* Chips con los agricultores del catálogo — aparecen al tocar el campo
+     de búsqueda vacío, para no tener que escribir el nombre completo. */
+  .buscar-sugerencias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .buscar-sugerencias[hidden] { display: none; }
+  .chip-agricultor {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+  .chip-agricultor:active { border-color: var(--dorado); color: var(--dorado); }
+
+  /* Resultados del buscador: una sola línea por carro, compacto. */
+  #lista-busqueda { gap: 6px; }
+  .resultado-carro {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+  }
+  .resultado-texto {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .resultado-texto b {
+    color: var(--tomate);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .resultado-carro .badge { flex-shrink: 0; }
+
   .badge {
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 10px;
@@ -534,6 +583,7 @@
       <div class="buscador-seccion">
         <label for="buscar-proveedor" class="buscador-label">Buscar por proveedor</label>
         <input type="text" id="buscar-proveedor" class="buscador-input" placeholder="Ej. Ramón" autocomplete="off">
+        <div id="buscar-sugerencias" class="buscar-sugerencias" hidden></div>
       </div>
 
       <div id="bloque-resultados-busqueda" hidden>

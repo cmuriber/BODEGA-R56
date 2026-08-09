@@ -438,7 +438,60 @@ function renderizarListaCarros() {
 let temporizadorBusqueda = null;
 let ultimaBusquedaId = 0;
 
-document.getElementById('buscar-proveedor').addEventListener('input', (ev) => {
+const inputBuscarProveedor = document.getElementById('buscar-proveedor');
+const sugerenciasAgricultoresBox = document.getElementById('buscar-sugerencias');
+
+// Chips con los nombres del catálogo de agricultores — aparecen al tocar
+// el campo vacío, para no obligar a escribir el nombre completo cada vez.
+function renderizarSugerenciasAgricultores() {
+  if (!sugerenciasAgricultoresBox) return;
+  const nombres = ((catalogos && catalogos.agricultores) || [])
+    .map(a => a.nombre)
+    .filter(Boolean);
+
+  if (nombres.length === 0) { sugerenciasAgricultoresBox.hidden = true; return; }
+
+  sugerenciasAgricultoresBox.innerHTML = '';
+  nombres.forEach(nombre => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip-agricultor';
+    chip.textContent = nombre;
+    // mousedown (no click) para que dispare ANTES de que el input pierda
+    // el foco y el listener de blur oculte los chips de golpe.
+    chip.addEventListener('mousedown', (ev) => {
+      ev.preventDefault();
+      seleccionarAgricultorSugerido(nombre);
+    });
+    sugerenciasAgricultoresBox.appendChild(chip);
+  });
+  sugerenciasAgricultoresBox.hidden = false;
+}
+
+function seleccionarAgricultorSugerido(nombre) {
+  inputBuscarProveedor.value = nombre;
+  sugerenciasAgricultoresBox.hidden = true;
+  clearTimeout(temporizadorBusqueda);
+
+  document.getElementById('bloque-hoy').hidden = true;
+  document.getElementById('bloque-resultados-busqueda').hidden = false;
+  document.getElementById('buscando-msg').hidden = false;
+  document.getElementById('lista-busqueda').innerHTML = '';
+
+  ejecutarBusqueda(nombre);
+}
+
+inputBuscarProveedor.addEventListener('focus', () => {
+  if (!inputBuscarProveedor.value.trim()) renderizarSugerenciasAgricultores();
+});
+
+inputBuscarProveedor.addEventListener('blur', () => {
+  // Pequeño margen para que el mousedown del chip alcance a dispararse
+  // antes de ocultar los chips por la pérdida de foco.
+  setTimeout(() => { sugerenciasAgricultoresBox.hidden = true; }, 150);
+});
+
+inputBuscarProveedor.addEventListener('input', (ev) => {
   const q = ev.target.value.trim();
   clearTimeout(temporizadorBusqueda);
 
@@ -449,9 +502,11 @@ document.getElementById('buscar-proveedor').addEventListener('input', (ev) => {
     ultimaBusquedaId += 1; // invalida cualquier búsqueda en curso
     bloqueResultados.hidden = true;
     bloqueHoy.hidden = false;
+    renderizarSugerenciasAgricultores();
     return;
   }
 
+  sugerenciasAgricultoresBox.hidden = true;
   bloqueHoy.hidden = true;
   bloqueResultados.hidden = false;
   document.getElementById('buscando-msg').hidden = false;
@@ -491,19 +546,24 @@ function renderizarResultadosBusqueda(lista, mensajeVacio) {
   ul.innerHTML = '';
   lista.forEach(m => {
     const li = document.createElement('li');
-    li.className = 'carro-card';
-    const numNaves = (m.naves || []).length;
+    li.className = 'resultado-carro';
+    const fechaCorta = formatearFechaCorta(m.fecha);
     li.innerHTML = `
-      <div class="carro-card-top">
-        <span class="carro-carro">Carro ${escapeHtml(m.carro)}</span>
-        <span class="badge ${claseBadge(m)}">${textoBadge(m)}</span>
-      </div>
-      <div class="carro-agricultor">${escapeHtml(m.agricultor)}</div>
-      <div class="carro-meta"><span class="carro-fecha">${escapeHtml(m.fecha)}</span> · ${numNaves} nave${numNaves === 1 ? '' : 's'} · ${m.cajasTotales || 0} cajas</div>
+      <span class="resultado-texto"><b>Carro ${escapeHtml(m.carro)}</b> · ${escapeHtml(m.agricultor)} · ${fechaCorta} · ${m.cajasTotales || 0} cajas</span>
+      <span class="badge ${claseBadge(m)}">${textoBadge(m)}</span>
     `;
     li.addEventListener('click', () => abrirDesdeResultado(m));
     ul.appendChild(li);
   });
+}
+
+// '2026-08-09' -> '09/08' — para que la tarjeta de resultado quepa en una
+// sola línea sin sacrificar el dato de qué tan reciente es.
+function formatearFechaCorta(fechaISO) {
+  if (!fechaISO) return '';
+  const partes = String(fechaISO).split('-');
+  if (partes.length !== 3) return escapeHtml(fechaISO);
+  return `${partes[2]}/${partes[1]}`;
 }
 
 // Al abrir un resultado de búsqueda (que puede ser de cualquier fecha, no
