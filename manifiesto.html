@@ -406,6 +406,17 @@
   }
   .btn-peligro:active { background: rgba(216,73,47,0.12); }
 
+  /* Estado "trabajando" de un botón mientras espera al servidor — para
+     que nunca se sienta como que la app no respondió. */
+  .btn-primario.btn-cargando, .btn-secundario.btn-cargando {
+    background: var(--ambar);
+    border-color: var(--ambar);
+    color: #14120E;
+    opacity: 0.85;
+    cursor: default;
+  }
+  button:disabled { cursor: default; }
+
   /* ---------- Modal genérico ---------- */
   .modal-fondo {
     position: fixed;

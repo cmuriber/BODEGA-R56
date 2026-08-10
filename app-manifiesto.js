@@ -203,6 +203,26 @@ function generarIdTemporal() {
   return 'tmp-' + Date.now() + '-' + Math.random().toString(16).slice(2);
 }
 
+// ---------- Botones con estado "trabajando" ----------
+//
+// Para que ninguna acción se sienta como que la app no respondió: mientras
+// se espera al servidor, el botón se deshabilita, cambia de color y de
+// texto (ej. "Guardando..."), y se restaura solo al terminar.
+
+async function conBotonCargando(boton, textoCargando, fn) {
+  const textoOriginal = boton.textContent;
+  boton.disabled = true;
+  boton.classList.add('btn-cargando');
+  boton.textContent = textoCargando;
+  try {
+    return await fn();
+  } finally {
+    boton.disabled = false;
+    boton.classList.remove('btn-cargando');
+    boton.textContent = textoOriginal;
+  }
+}
+
 // ---------- Formato / utilidades ----------
 
 function fechaHoyCDMX() {
@@ -746,15 +766,17 @@ document.getElementById('btn-cancelar-carro').addEventListener('click', () => {
   document.getElementById('modal-carro').hidden = true;
 });
 
-document.getElementById('btn-crear-carro').addEventListener('click', async () => {
+document.getElementById('btn-crear-carro').addEventListener('click', async (ev) => {
   const agricultor = document.getElementById('carro-agricultor').value;
   const carro = document.getElementById('carro-numero').value.trim();
   if (!agricultor || !carro) {
     document.getElementById('carro-error').textContent = 'Selecciona agricultor y captura el número de carro.';
     return;
   }
+  // El modal se cierra DESPUÉS de que termine, no antes — así el usuario
+  // ve "Creando..." en vez de quedarse mirando la lista vacía un momento.
+  await conBotonCargando(ev.currentTarget, 'Creando...', () => crearManifiesto(agricultor, carro));
   document.getElementById('modal-carro').hidden = true;
-  await crearManifiesto(agricultor, carro);
 });
 
 async function crearManifiesto(agricultor, carro) {
@@ -838,7 +860,7 @@ document.getElementById('btn-nave-nueva').addEventListener('click', () => {
 
 document.getElementById('btn-cancelar-nave').addEventListener('click', cerrarModalNave);
 
-document.getElementById('btn-guardar-nave').addEventListener('click', async () => {
+document.getElementById('btn-guardar-nave').addEventListener('click', async (ev) => {
   const invernadero = document.getElementById('nave-invernadero').value.trim();
   const letra = document.getElementById('nave-letra').value.trim();
   const semilla = document.getElementById('nave-semilla').value.trim();
@@ -853,7 +875,7 @@ document.getElementById('btn-guardar-nave').addEventListener('click', async () =
     datos[c.param] = Number(document.getElementById('campo-' + c.param).value) || 0;
   });
 
-  await guardarNave(manifiestoModalId, naveEditandoId, datos);
+  await conBotonCargando(ev.currentTarget, 'Guardando...', () => guardarNave(manifiestoModalId, naveEditandoId, datos));
 });
 
 async function enviarNaveAlBackend(manifiestoId, naveId, datos) {
@@ -930,10 +952,10 @@ async function guardarNave(manifiestoId, naveLocalId, datos) {
 
 // ---------- Acción: finalizar manifiesto ----------
 
-document.getElementById('btn-finalizar').addEventListener('click', async () => {
+document.getElementById('btn-finalizar').addEventListener('click', async (ev) => {
   if (!vistaActualId) return;
   if (!confirm('¿Ya terminaste de capturar todas las naves de este carro?')) return;
-  await finalizarManifiesto(vistaActualId);
+  await conBotonCargando(ev.currentTarget, 'Finalizando...', () => finalizarManifiesto(vistaActualId));
 });
 
 async function finalizarManifiesto(manifiestoId) {
@@ -1012,10 +1034,10 @@ document.getElementById('btn-cerrar-compendio').addEventListener('click', () => 
 
 // ---------- Acción: reabrir (solo administradores) ----------
 
-document.getElementById('btn-reabrir').addEventListener('click', async () => {
+document.getElementById('btn-reabrir').addEventListener('click', async (ev) => {
   if (!vistaActualId) return;
   if (!confirm('¿Reabrir este manifiesto para seguir vendiendo o corregirlo?')) return;
-  await reabrirManifiesto(vistaActualId);
+  await conBotonCargando(ev.currentTarget, 'Reabriendo...', () => reabrirManifiesto(vistaActualId));
 });
 
 async function reabrirManifiesto(manifiestoId) {
@@ -1048,13 +1070,13 @@ async function reabrirManifiesto(manifiestoId) {
 // vuelve a validar esto con requiereSesion(e, ['admin']), así que aunque
 // alguien manipule el frontend, el borrado real queda protegido ahí.
 
-document.getElementById('btn-eliminar').addEventListener('click', async () => {
+document.getElementById('btn-eliminar').addEventListener('click', async (ev) => {
   if (!vistaActualId) return;
   const m = obtenerManifiestoLocal(vistaActualId);
   if (!m) return;
   const ok = confirm(`¿Estás seguro de eliminar el Carro ${m.carro} de ${m.agricultor}? Esta acción no se puede deshacer.`);
   if (!ok) return;
-  await eliminarManifiesto(vistaActualId);
+  await conBotonCargando(ev.currentTarget, 'Eliminando...', () => eliminarManifiesto(vistaActualId));
 });
 
 async function eliminarManifiesto(manifiestoId) {
