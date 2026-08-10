@@ -438,6 +438,7 @@ function renderizarListaCarros() {
 
 let ultimaBusquedaId = 0;
 let agricultorActivo = null;
+let ultimosResultadosBusqueda = []; // última lista que trajo el backend para agricultorActivo
 
 const sugerenciasAgricultoresBox = document.getElementById('buscar-sugerencias');
 
@@ -505,7 +506,8 @@ async function ejecutarBusqueda(q) {
       renderizarResultadosBusqueda([], 'No se pudo buscar. Intenta de nuevo.');
       return;
     }
-    renderizarResultadosBusqueda(data.manifiestos || []);
+    ultimosResultadosBusqueda = data.manifiestos || [];
+    renderizarResultadosBusqueda(ultimosResultadosBusqueda);
   } catch (err) {
     if (idBusqueda !== ultimaBusquedaId) return;
     document.getElementById('buscando-msg').hidden = true;
@@ -613,11 +615,26 @@ function abrirDetalle(id) {
   renderizarDetalle(m);
 }
 
-document.getElementById('btn-volver-lista').addEventListener('click', () => {
+document.getElementById('btn-volver-lista').addEventListener('click', volverALista);
+
+// Regresa a la pantalla de donde vino el usuario — "Camiones de hoy" o los
+// resultados del proveedor activo — repintando desde lo que YA se tiene en
+// memoria, sin volver a llamar al backend (eso es lo que hacía sentir la
+// app lenta después de finalizar/eliminar un carro).
+function volverALista() {
   vistaActualId = null;
   document.getElementById('vista-detalle').hidden = true;
   document.getElementById('vista-lista').hidden = false;
-});
+  refrescarListaActivaLocal();
+}
+
+function refrescarListaActivaLocal() {
+  if (agricultorActivo) {
+    renderizarResultadosBusqueda(ultimosResultadosBusqueda);
+  } else {
+    renderizarListaCarros();
+  }
+}
 
 // ---------- Estado local (fuente de verdad para el render) ----------
 
@@ -632,6 +649,26 @@ async function guardarCacheDia() {
 function recalcularCajasTotales(m) {
   m.cajasTotales = (m.naves || []).reduce((acc, n) =>
     acc + CAMPOS_TAMANO.reduce((a, c) => a + (Number(n[c.param]) || 0), 0), 0);
+}
+
+// Aplica en memoria el mismo cambio que el backend ya confirmó que guardó
+// (crear o modificar una nave), sin tener que volver a pedirlo. Se usa en
+// el camino ONLINE de guardarNave — el camino offline hace algo parecido
+// a mano porque además maneja la cola de pendientes.
+function aplicarNaveLocal(manifiesto, naveId, datos) {
+  manifiesto.naves = manifiesto.naves || [];
+  const existente = manifiesto.naves.find(n => n.id === naveId);
+  if (existente) {
+    Object.assign(existente, datos);
+    delete existente.pendiente;
+    delete existente.pendienteId;
+    delete existente._payloadPendiente;
+  } else {
+    manifiesto.naves.push(Object.assign({ id: naveId }, datos));
+  }
+  recalcularCajasTotales(manifiesto);
+  manifiesto.pendiente = false;
+  guardarCacheDia();
 }
 
 // ---------- Traer datos del backend ----------
@@ -729,9 +766,24 @@ async function crearManifiesto(agricultor, carro) {
       const data = await llamarJSONP(url);
       if (data.error === 'no_autorizado') { await volverALogin(); return; }
       if (!data.ok) { alert(data.error || 'No se pudo crear el manifiesto.'); return; }
-      await refrescarDesdeBackend();
-      cargarChipsAgricultores();
+
+      // Ya sabemos exactamente qué se creó — lo pintamos de inmediato en
+      // vez de esperar un round-trip completo a manifiestos_dia solo para
+      // volver a traer lo mismo. Antes esto era la mitad de los ~5s de
+      // espera que se sentían al dar "Crear".
+      const nuevo = {
+        id: data.manifiestoId, fecha: data.fecha, agricultor: data.agricultor,
+        carro: data.carro, estado: data.estado || 'captura',
+        cajasTotales: 0, cajasVendidas: 0, naves: []
+      };
+      estadoDia = estadoDia || { fecha, manifiestos: [] };
+      estadoDia.manifiestos.unshift(nuevo);
+      guardarCacheDia();
+      renderizarListaCarros();
       abrirDetalle(data.manifiestoId);
+
+      refrescarDesdeBackend();   // en segundo plano, no bloquea la UI
+      cargarChipsAgricultores(); // en segundo plano
       return;
     } catch (err) {
       // sin conexión a media llamada — cae al camino offline de abajo
@@ -828,9 +880,18 @@ async function guardarNave(manifiestoId, naveLocalId, datos) {
   if (navigator.onLine && !manifiestoTemp) {
     try {
       const idReal = naveExistente && !String(naveExistente.id).startsWith('tmp-') ? naveExistente.id : null;
-      await enviarNaveAlBackend(manifiestoId, idReal, datos);
-      await refrescarDesdeBackend();
+      const resultado = await enviarNaveAlBackend(manifiestoId, idReal, datos);
+
+      // Ya sabemos exactamente qué se guardó — se aplica de inmediato en
+      // vez de esperar otro round-trip completo a manifiestos_dia solo
+      // para volver a traer lo mismo (eso era buena parte de los ~5s que
+      // se sentían al guardar una nave).
+      aplicarNaveLocal(manifiesto, idReal || resultado.naveId, datos);
+      renderizarDetalle(manifiesto);
+      renderizarListaCarros();
       cerrarModalNave();
+
+      refrescarDesdeBackend(); // en segundo plano, no bloquea la UI
       return;
     } catch (err) {
       if (err.message === 'no_autorizado') return;
@@ -886,8 +947,15 @@ async function finalizarManifiesto(manifiestoId) {
       const data = await llamarJSONP(url);
       if (data.error === 'no_autorizado') { await volverALogin(); return; }
       if (!data.ok) { alert(data.error || 'No se pudo finalizar.'); return; }
-      await refrescarDesdeBackend();
+
+      // Ya sabemos el resultado — se aplica de inmediato en vez de esperar
+      // otro round-trip a manifiestos_dia solo para confirmar lo mismo.
+      manifiesto.estado = 'abierto';
+      manifiesto.pendiente = false;
+      guardarCacheDia();
       mostrarCompendio(data.compendio);
+
+      refrescarDesdeBackend(); // en segundo plano, no bloquea la UI
       return;
     } catch (err) {
       // sin conexión a media llamada — cae al camino offline de abajo
@@ -936,6 +1004,10 @@ function mostrarCompendio(compendio) {
 
 document.getElementById('btn-cerrar-compendio').addEventListener('click', () => {
   document.getElementById('modal-compendio').hidden = true;
+  // Al finalizar, regresa a la pantalla anterior (Camiones de hoy o los
+  // resultados del proveedor) en vez de dejar al usuario parado en el
+  // detalle del carro que acaba de cerrar.
+  volverALista();
 });
 
 // ---------- Acción: reabrir (solo administradores) ----------
@@ -956,7 +1028,16 @@ async function reabrirManifiesto(manifiestoId) {
     const data = await llamarJSONP(url);
     if (data.error === 'no_autorizado') { alert('No tienes permiso para reabrir manifiestos.'); return; }
     if (!data.ok) { alert(data.error || 'No se pudo reabrir.'); return; }
-    await refrescarDesdeBackend();
+
+    const manifiesto = obtenerManifiestoLocal(manifiestoId);
+    if (manifiesto) {
+      manifiesto.estado = 'abierto';
+      guardarCacheDia();
+      renderizarDetalle(manifiesto);
+      refrescarListaActivaLocal();
+    }
+
+    refrescarDesdeBackend(); // en segundo plano
   } catch (err) {
     alert('Sin conexión. Intenta de nuevo.');
   }
@@ -993,26 +1074,17 @@ async function eliminarManifiesto(manifiestoId) {
 
     if (estadoDia && estadoDia.manifiestos) {
       estadoDia.manifiestos = estadoDia.manifiestos.filter(x => x.id !== manifiestoId);
-      await guardarCacheDia();
+      guardarCacheDia();
     }
+    // Quítalo también de los resultados de búsqueda en memoria, si estaba
+    // ahí, para no tener que volver a pedirlos al servidor solo para
+    // repintar la misma lista sin ese carro.
+    ultimosResultadosBusqueda = ultimosResultadosBusqueda.filter(x => x.id !== manifiestoId);
 
-    vistaActualId = null;
-    document.getElementById('vista-detalle').hidden = true;
-    document.getElementById('vista-lista').hidden = false;
+    volverALista();
 
-    if (agricultorActivo) {
-      // Se abrió desde los chips de proveedor — hay que refrescar ESA
-      // lista de resultados, no la de "Camiones de hoy", si no la tarjeta
-      // del carro borrado se queda pintada ahí aunque ya no exista.
-      document.getElementById('buscando-msg').hidden = false;
-      document.getElementById('lista-busqueda').innerHTML = '';
-      ejecutarBusqueda(agricultorActivo);
-    } else {
-      renderizarListaCarros();
-    }
-
-    await refrescarDesdeBackend();
-    cargarChipsAgricultores();
+    refrescarDesdeBackend();   // en segundo plano
+    cargarChipsAgricultores(); // en segundo plano
   } catch (err) {
     alert('Sin conexión. Intenta de nuevo.');
   }
