@@ -291,6 +291,7 @@ async function iniciarSesionConToken(token, rol, nombre) {
   mostrarApp();
   await cargarCatalogos();
   await cargarYRenderizarDia();
+  cargarChipsAgricultores();
   sincronizar();
 }
 
@@ -433,46 +434,49 @@ function renderizarListaCarros() {
   });
 }
 
-// ---------- Buscador por proveedor (cualquier fecha, no solo hoy) ----------
+// ---------- Proveedores: chips siempre visibles (cualquier fecha, no solo hoy) ----------
 
-let temporizadorBusqueda = null;
 let ultimaBusquedaId = 0;
+let agricultorActivo = null;
 
-const inputBuscarProveedor = document.getElementById('buscar-proveedor');
 const sugerenciasAgricultoresBox = document.getElementById('buscar-sugerencias');
 
-// Chips con los nombres del catálogo de agricultores — aparecen al tocar
-// el campo vacío, para no obligar a escribir el nombre completo cada vez.
-function renderizarSugerenciasAgricultores() {
+// Carga los nombres de agricultores que YA tienen al menos un carro
+// capturado (sacados de Manifiestos en el backend, no de un catálogo
+// fijo) y pinta los chips. Se llama al arrancar y cada vez que se crea o
+// elimina un carro, para que un proveedor nuevo aparezca solo.
+async function cargarChipsAgricultores() {
   if (!sugerenciasAgricultoresBox) return;
-  const nombres = ((catalogos && catalogos.agricultores) || [])
-    .map(a => a.nombre)
-    .filter(Boolean);
+  try {
+    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=agricultores_con_carros&token=${encodeURIComponent(tokenActual)}`);
+    if (data.error === 'no_autorizado') { await volverALogin(); return; }
+    if (data.ok) renderizarChipsAgricultores(data.agricultores || []);
+  } catch (err) {
+    // Sin conexión: deja los chips como estaban (o vacíos si es la primera carga).
+  }
+}
 
-  if (nombres.length === 0) { sugerenciasAgricultoresBox.hidden = true; return; }
-
+function renderizarChipsAgricultores(nombres) {
   sugerenciasAgricultoresBox.innerHTML = '';
+  if (nombres.length === 0) {
+    sugerenciasAgricultoresBox.innerHTML = '<span class="carro-agricultor">Todavía no hay carros capturados.</span>';
+    return;
+  }
   nombres.forEach(nombre => {
     const chip = document.createElement('button');
     chip.type = 'button';
-    chip.className = 'chip-agricultor';
+    chip.className = 'chip-agricultor' + (nombre === agricultorActivo ? ' chip-activo' : '');
     chip.textContent = nombre;
-    // mousedown (no click) para que dispare ANTES de que el input pierda
-    // el foco y el listener de blur oculte los chips de golpe.
-    chip.addEventListener('mousedown', (ev) => {
-      ev.preventDefault();
-      seleccionarAgricultorSugerido(nombre);
-    });
+    chip.addEventListener('click', () => seleccionarAgricultor(nombre));
     sugerenciasAgricultoresBox.appendChild(chip);
   });
-  sugerenciasAgricultoresBox.hidden = false;
 }
 
-function seleccionarAgricultorSugerido(nombre) {
-  inputBuscarProveedor.value = nombre;
-  sugerenciasAgricultoresBox.hidden = true;
-  clearTimeout(temporizadorBusqueda);
+function seleccionarAgricultor(nombre) {
+  agricultorActivo = nombre;
+  renderizarChipsAgricultores(Array.from(sugerenciasAgricultoresBox.querySelectorAll('.chip-agricultor')).map(c => c.textContent));
 
+  document.getElementById('resultados-agricultor-nombre').textContent = nombre;
   document.getElementById('bloque-hoy').hidden = true;
   document.getElementById('bloque-resultados-busqueda').hidden = false;
   document.getElementById('buscando-msg').hidden = false;
@@ -481,45 +485,19 @@ function seleccionarAgricultorSugerido(nombre) {
   ejecutarBusqueda(nombre);
 }
 
-inputBuscarProveedor.addEventListener('focus', () => {
-  if (!inputBuscarProveedor.value.trim()) renderizarSugerenciasAgricultores();
-});
-
-inputBuscarProveedor.addEventListener('blur', () => {
-  // Pequeño margen para que el mousedown del chip alcance a dispararse
-  // antes de ocultar los chips por la pérdida de foco.
-  setTimeout(() => { sugerenciasAgricultoresBox.hidden = true; }, 150);
-});
-
-inputBuscarProveedor.addEventListener('input', (ev) => {
-  const q = ev.target.value.trim();
-  clearTimeout(temporizadorBusqueda);
-
-  const bloqueResultados = document.getElementById('bloque-resultados-busqueda');
-  const bloqueHoy = document.getElementById('bloque-hoy');
-
-  if (!q) {
-    ultimaBusquedaId += 1; // invalida cualquier búsqueda en curso
-    bloqueResultados.hidden = true;
-    bloqueHoy.hidden = false;
-    renderizarSugerenciasAgricultores();
-    return;
-  }
-
-  sugerenciasAgricultoresBox.hidden = true;
-  bloqueHoy.hidden = true;
-  bloqueResultados.hidden = false;
-  document.getElementById('buscando-msg').hidden = false;
-  document.getElementById('lista-busqueda').innerHTML = '';
-
-  temporizadorBusqueda = setTimeout(() => ejecutarBusqueda(q), 350);
+document.getElementById('btn-ver-hoy').addEventListener('click', () => {
+  agricultorActivo = null;
+  ultimaBusquedaId += 1; // invalida cualquier búsqueda en curso
+  document.getElementById('bloque-resultados-busqueda').hidden = true;
+  document.getElementById('bloque-hoy').hidden = false;
+  renderizarChipsAgricultores(Array.from(sugerenciasAgricultoresBox.querySelectorAll('.chip-agricultor')).map(c => c.textContent));
 });
 
 async function ejecutarBusqueda(q) {
   const idBusqueda = ++ultimaBusquedaId;
   try {
     const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=manifiestos_buscar&token=${encodeURIComponent(tokenActual)}&q=${encodeURIComponent(q)}`);
-    if (idBusqueda !== ultimaBusquedaId) return; // el usuario ya siguió escribiendo — esta respuesta ya no aplica
+    if (idBusqueda !== ultimaBusquedaId) return; // el usuario ya cambió de proveedor — esta respuesta ya no aplica
     if (data.error === 'no_autorizado') { await volverALogin(); return; }
 
     document.getElementById('buscando-msg').hidden = true;
@@ -623,6 +601,7 @@ function renderizarDetalle(m) {
 
   document.getElementById('btn-finalizar').hidden = m.estado !== 'captura';
   document.getElementById('btn-reabrir').hidden = !(m.estado === 'cerrado' && usuarioRol === 'admin');
+  document.getElementById('btn-eliminar').hidden = usuarioRol !== 'admin';
 }
 
 function abrirDetalle(id) {
@@ -736,6 +715,7 @@ async function crearManifiesto(agricultor, carro) {
       if (data.error === 'no_autorizado') { await volverALogin(); return; }
       if (!data.ok) { alert(data.error || 'No se pudo crear el manifiesto.'); return; }
       await refrescarDesdeBackend();
+      cargarChipsAgricultores();
       abrirDetalle(data.manifiestoId);
       return;
     } catch (err) {
@@ -962,6 +942,51 @@ async function reabrirManifiesto(manifiestoId) {
     if (data.error === 'no_autorizado') { alert('No tienes permiso para reabrir manifiestos.'); return; }
     if (!data.ok) { alert(data.error || 'No se pudo reabrir.'); return; }
     await refrescarDesdeBackend();
+  } catch (err) {
+    alert('Sin conexión. Intenta de nuevo.');
+  }
+}
+
+// ---------- Acción: eliminar carro (solo administradores) ----------
+// Rol 'admin' hoy es exactamente Mauricio, Estefanía y Daniel — el backend
+// vuelve a validar esto con requiereSesion(e, ['admin']), así que aunque
+// alguien manipule el frontend, el borrado real queda protegido ahí.
+
+document.getElementById('btn-eliminar').addEventListener('click', async () => {
+  if (!vistaActualId) return;
+  const m = obtenerManifiestoLocal(vistaActualId);
+  if (!m) return;
+  const ok = confirm(`¿Estás seguro de eliminar el Carro ${m.carro} de ${m.agricultor}? Esta acción no se puede deshacer.`);
+  if (!ok) return;
+  await eliminarManifiesto(vistaActualId);
+});
+
+async function eliminarManifiesto(manifiestoId) {
+  if (String(manifiestoId).startsWith('tmp-')) {
+    alert('Este carro todavía no termina de sincronizarse — espera a que tenga conexión antes de eliminarlo.');
+    return;
+  }
+  if (!navigator.onLine) {
+    alert('Necesitas internet para eliminar un carro.');
+    return;
+  }
+  try {
+    const url = `${APPS_SCRIPT_URL}?action=manifiesto_eliminar&token=${encodeURIComponent(tokenActual)}&manifiestoId=${manifiestoId}`;
+    const data = await llamarJSONP(url);
+    if (data.error === 'no_autorizado') { alert('No tienes permiso para eliminar carros.'); return; }
+    if (!data.ok) { alert(data.error || 'No se pudo eliminar.'); return; }
+
+    if (estadoDia && estadoDia.manifiestos) {
+      estadoDia.manifiestos = estadoDia.manifiestos.filter(x => x.id !== manifiestoId);
+      await guardarCacheDia();
+    }
+
+    vistaActualId = null;
+    document.getElementById('vista-detalle').hidden = true;
+    document.getElementById('vista-lista').hidden = false;
+    renderizarListaCarros();
+    await refrescarDesdeBackend();
+    cargarChipsAgricultores();
   } catch (err) {
     alert('Sin conexión. Intenta de nuevo.');
   }
