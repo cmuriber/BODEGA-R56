@@ -984,7 +984,18 @@ async function eliminarManifiesto(manifiestoId) {
     vistaActualId = null;
     document.getElementById('vista-detalle').hidden = true;
     document.getElementById('vista-lista').hidden = false;
-    renderizarListaCarros();
+
+    if (agricultorActivo) {
+      // Se abrió desde los chips de proveedor — hay que refrescar ESA
+      // lista de resultados, no la de "Camiones de hoy", si no la tarjeta
+      // del carro borrado se queda pintada ahí aunque ya no exista.
+      document.getElementById('buscando-msg').hidden = false;
+      document.getElementById('lista-busqueda').innerHTML = '';
+      ejecutarBusqueda(agricultorActivo);
+    } else {
+      renderizarListaCarros();
+    }
+
     await refrescarDesdeBackend();
     cargarChipsAgricultores();
   } catch (err) {
