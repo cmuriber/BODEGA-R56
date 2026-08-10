@@ -535,13 +535,13 @@ function renderizarResultadosBusqueda(lista, mensajeVacio) {
   });
 }
 
-// '2026-08-09' -> '09/08' — para que la tarjeta de resultado quepa en una
-// sola línea sin sacrificar el dato de qué tan reciente es.
+// '2026-08-09' -> '09/08/2026' — con año completo para no confundir carros
+// del mismo día/mes de años distintos.
 function formatearFechaCorta(fechaISO) {
   if (!fechaISO) return '';
   const partes = String(fechaISO).split('-');
   if (partes.length !== 3) return escapeHtml(fechaISO);
-  return `${partes[2]}/${partes[1]}`;
+  return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
 
 // Al abrir un resultado de búsqueda (que puede ser de cualquier fecha, no
@@ -643,13 +643,28 @@ async function refrescarDesdeBackend() {
     if (data.error === 'no_autorizado') { await volverALogin(); return; }
     if (!data.ok) return;
 
-    // Conserva en memoria cualquier manifiesto de OTRA fecha que se haya
-    // abierto desde el buscador por proveedor (ver abrirDesdeResultado),
-    // para no perderlo de golpe si este refresco automático llega mientras
-    // el usuario sigue viendo su detalle.
-    const ajenos = ((estadoDia && estadoDia.manifiestos) || []).filter(m => m.fecha && m.fecha !== fecha);
+    // Cualquier manifiesto de OTRA fecha que se haya abierto desde el
+    // buscador por proveedor (ver abrirDesdeResultado) NO viene en esta
+    // respuesta (manifiestos_dia solo trae los de "fecha"). Antes se
+    // conservaba tal cual estaba en memoria, pero eso dejaba el estado
+    // VIEJO pegado en pantalla si justo se le acababa de finalizar/
+    // reabrir/agregar una nave — se refresca cada uno por separado.
+    const idsAjenos = ((estadoDia && estadoDia.manifiestos) || [])
+      .filter(m => m.fecha && m.fecha !== fecha && !String(m.id).startsWith('tmp-'))
+      .map(m => m.id);
 
-    estadoDia = { fecha, manifiestos: data.manifiestos.concat(ajenos) };
+    const ajenos = [];
+    for (const id of idsAjenos) {
+      const previo = ((estadoDia && estadoDia.manifiestos) || []).find(m => m.id === id);
+      try {
+        const detalle = await llamarJSONP(`${APPS_SCRIPT_URL}?action=manifiesto_detalle&token=${encodeURIComponent(tokenActual)}&manifiestoId=${id}`);
+        ajenos.push(detalle.ok && detalle.manifiesto ? detalle.manifiesto : previo);
+      } catch (err) {
+        if (previo) ajenos.push(previo); // sin conexión a media pasada — no lo perdemos, aunque quede viejo
+      }
+    }
+
+    estadoDia = { fecha, manifiestos: data.manifiestos.concat(ajenos.filter(Boolean)) };
     await guardarCache(fecha, estadoDia.manifiestos);
     renderizarListaCarros();
 
