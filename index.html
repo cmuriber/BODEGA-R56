@@ -66,16 +66,33 @@
     margin-top: 4px;
   }
 
-  /* --- Nav a otros módulos --- */
-  .nav-link {
+  /* --- Nav a otros módulos: pills llamativos, los 3 siempre visibles,
+     el módulo activo se ve resaltado en verde en vez de como link normal --- */
+  .modulos-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .modulos-nav .modulo-link {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--text-dim);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 7px 14px;
+    white-space: nowrap;
+    cursor: default;
+  }
+  .modulos-nav a.modulo-link { cursor: pointer; }
+  .modulos-nav a.modulo-link:hover { border-color: var(--tallo); color: var(--tallo); }
+  .modulos-nav .modulo-link.activo { background: var(--tallo); border-color: var(--tallo); color: #fff; }
+
+  /* --- Quién tiene la sesión abierta --- */
+  .usuario-chip {
     font-family: 'Inter', sans-serif;
     font-size: 12px;
     font-weight: 600;
     color: var(--text-dim);
-    text-decoration: none;
-    border: 1px solid var(--card-border);
-    border-radius: 20px;
-    padding: 5px 12px;
     white-space: nowrap;
   }
 
@@ -364,6 +381,14 @@
   button#login-submit:disabled { opacity: 0.6; }
 
   #dashboard-view[hidden] { display: none; }
+
+  /* Un poco más de aire en pantallas de PC — evita que el título se
+     encime con el nav/nombre de usuario nuevos de la barra de arriba. */
+  @media (min-width: 860px) {
+    body { max-width: 1100px; }
+    .top { flex-wrap: wrap; gap: 10px; }
+    .marca { white-space: nowrap; }
+  }
 </style>
 </head>
 <body>
@@ -397,8 +422,12 @@
       <div id="fecha-label">—</div>
     </div>
     <div class="top-derecha">
-      <a class="nav-link" href="./vale.html">Vale</a>
-      <a class="nav-link" href="./manifiesto.html">Manifiesto</a>
+      <nav class="modulos-nav">
+        <span class="modulo-link activo">Dashboard</span>
+        <a class="modulo-link" href="./manifiesto.html">Manifiesto</a>
+        <a class="modulo-link" href="./vale.html">Vale</a>
+      </nav>
+      <span class="usuario-chip" id="usuario-chip"></span>
       <div class="sello-wrap">
         <button id="refrescar" aria-label="Actualizar">⟳</button>
         <div id="sello">AL DÍA</div>

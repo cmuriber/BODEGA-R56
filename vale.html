@@ -179,6 +179,38 @@
     font-family: 'Inter', sans-serif;
   }
 
+  /* --- Nav a otros módulos: pills llamativos, los 3 siempre visibles,
+     el módulo activo se ve resaltado en verde en vez de como link normal.
+     Selector con 2 clases a propósito — así le gana en especificidad a
+     ".top-acciones a" de arriba sin depender del orden en el archivo. */
+  .modulos-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .modulos-nav .modulo-link {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--text-dim);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 7px 14px;
+    white-space: nowrap;
+    cursor: default;
+  }
+  .modulos-nav a.modulo-link { cursor: pointer; }
+  .modulos-nav a.modulo-link:hover { border-color: var(--tallo); color: var(--tallo); }
+  .modulos-nav .modulo-link.activo { background: var(--tallo); border-color: var(--tallo); color: #fff; }
+
+  /* --- Quién tiene la sesión abierta --- */
+  .usuario-chip {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
   #sello-chip {
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
@@ -575,9 +607,13 @@
     border-radius: 20px; padding: 5px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer;
     white-space: nowrap; font-family: 'Inter', sans-serif;
   }
+  /* Marca de agua del próximo folio — es solo de referencia (el número
+     real y definitivo lo asigna el servidor al guardar), por eso va en
+     tono apagado en vez de como un dato ya confirmado. */
   .folio-chip {
     background: var(--card); border: 1px solid var(--card-border); border-radius: 10px;
     padding: 9px 11px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 18px;
+    color: var(--text-dim); letter-spacing: 0.02em;
   }
   .fecha-chip {
     background: var(--card); border: 1px solid var(--card-border); border-radius: 10px;
@@ -710,7 +746,7 @@
   }
   .manifiesto-tabs button.active { background: #fff; color: var(--tallo); border-color: var(--tallo); }
   .manifiesto-tabs button.tab-later { border-style: dashed; color: var(--ambar); }
-  .manifiesto-body { border-top: 1px solid var(--card-border); padding: 10px 12px 12px; max-height: 320px; overflow-y: auto; }
+  .manifiesto-body { border-top: 1px solid var(--card-border); padding: 10px 12px 12px; max-height: 400px; overflow-y: auto; }
   .manifiesto-meta { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
   .manifiesto-meta b { color: var(--text); }
   .badge-later { color: var(--ambar); font-weight: 700; }
@@ -740,14 +776,17 @@
     padding: 9px 11px; font-size: 14px; color: var(--text); margin-bottom: 10px; font-family: 'Inter', sans-serif;
   }
   #historial-buscar:focus { outline: none; border-color: var(--dorado); }
+  .historial-hint { font-size: 11.5px; color: var(--text-dim); margin: -4px 0 10px; }
   .historial-fila {
-    display: grid; grid-template-columns: 58px 1fr 70px 70px; gap: 8px; align-items: center;
+    display: grid; grid-template-columns: 58px 1fr 70px 70px 26px; gap: 8px; align-items: center;
     padding: 9px 4px; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
   }
   .historial-fila[data-folio] { cursor: pointer; }
+  .historial-fila[data-folio]:hover { background: rgba(31,111,67,0.05); }
   .historial-fila[data-folio]:active { background: var(--bg); }
   .historial-fila.head { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); font-weight: 700; border-bottom: 1px solid var(--card-border); }
   .historial-fila .monto { text-align: right; font-weight: 700; }
+  .historial-fila .editar-icono { font-size: 13px; text-align: center; opacity: 0.75; }
   .tipo-pill { font-size: 10.5px; font-weight: 700; padding: 3px 7px; border-radius: 999px; background: rgba(31,111,67,0.12); color: var(--tallo); text-align: center; }
   .tipo-pill.credito { background: rgba(183,121,31,0.15); color: var(--dorado-dim); }
   .historial-vacio { color: var(--text-dim); font-size: 13px; padding: 16px 4px; text-align: center; }
@@ -866,8 +905,13 @@
         <div class="titulo-modulo">Nueva Venta / Vale</div>
       </div>
       <div class="top-acciones">
+        <nav class="modulos-nav">
+          <a class="modulo-link" href="./index.html">Dashboard</a>
+          <a class="modulo-link" href="./manifiesto.html">Manifiesto</a>
+          <span class="modulo-link activo">Vale</span>
+        </nav>
+        <span class="usuario-chip" id="usuario-chip"></span>
         <span class="admin-chip" id="admin-chip" hidden>Admin</span>
-        <a href="./index.html">Dashboard</a>
         <button id="btn-salir" type="button">Salir</button>
       </div>
     </div>
@@ -883,8 +927,8 @@
             <div class="fecha-chip" id="fecha-chip">—</div>
           </div>
           <div>
-            <label class="campo-label-inline">&nbsp;</label>
-            <div class="folio-chip">Folio al guardar</div>
+            <label class="campo-label-inline">Próximo folio</label>
+            <div class="folio-chip" id="folio-chip">—</div>
           </div>
         </div>
 
@@ -927,7 +971,6 @@
           <div class="seccion" style="margin:12px 12px 0;">
             <div class="seccion-titulo" style="font-size:15px;">Manifiesto (consulta)</div>
           </div>
-          <div class="manifiesto-nota">Solo consulta visual — no llena el formulario de venta.</div>
           <div class="manifiesto-tabs" id="manifiesto-tabs"></div>
           <div class="manifiesto-body" id="manifiesto-body"></div>
         </div>
@@ -955,6 +998,7 @@
   <div class="modal-fondo" id="historial-overlay" hidden>
     <div class="modal-caja">
       <div class="modal-titulo">Vales guardados hoy</div>
+      <div class="historial-hint">Toca un vale de la lista para modificarlo.</div>
       <input type="text" id="historial-buscar" placeholder="Buscar por folio o cliente…">
       <div id="historial-lista"></div>
       <div class="modal-acciones" style="margin-top:14px;">

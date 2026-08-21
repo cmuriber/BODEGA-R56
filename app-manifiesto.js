@@ -309,6 +309,8 @@ async function iniciarSesionConToken(token, rol, nombre) {
   usuarioRol = rol;
   usuarioNombre = nombre;
   mostrarApp();
+  const usuarioChip = document.getElementById('usuario-chip');
+  if (usuarioChip) usuarioChip.textContent = usuarioNombre || '';
   await cargarCatalogos();
   await cargarYRenderizarDia();
   cargarChipsAgricultores();

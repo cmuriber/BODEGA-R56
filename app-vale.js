@@ -207,6 +207,8 @@ let partidaAutoId = 1;
 let pendingWarningResolve = null;
 let ventasHoy = []; // acción ventas_dia — solo lectura, para el panel de "Vales guardados"
 let sincronizando = false;
+let folioEditando = null; // null = vale nuevo · número = editando ese vale ya guardado
+let proximoFolio = null; // solo de referencia visual — el real lo asigna venta_guardar
 
 // ---------- Sesión / Login (idéntico patrón al Módulo 3) ----------
 
@@ -230,11 +232,22 @@ async function iniciarSesionConToken(token, rol, nombre) {
   usuarioNombre = nombre;
   mostrarApp();
   document.getElementById('admin-chip').hidden = usuarioRol !== 'admin';
+  const usuarioChip = document.getElementById('usuario-chip');
+  if (usuarioChip) usuarioChip.textContent = usuarioNombre || '';
+  // El formulario se muestra de inmediato, vacío, sin esperar nada del
+  // servidor — antes se esperaban 3 llamadas seguidas (disponible,
+  // clientes, ventas del día), una detrás de otra, antes de dejar ver la
+  // pantalla para capturar; eso era la tardanza de varios segundos al
+  // entrar al módulo.
   partidas = [nuevaPartida()];
-  await cargarDisponible();
-  await cargarClientes();
-  await cargarVentasHoy();
   renderPartidas();
+
+  // Los catálogos se piden los 4 en paralelo (no uno tras otro) y cada
+  // uno redibuja su parte en cuanto llega, sin bloquear a los demás.
+  cargarDisponible().then(() => renderPartidas());
+  cargarClientes();
+  cargarVentasHoy();
+  cargarSiguienteFolio();
   sincronizar();
 }
 
@@ -307,6 +320,21 @@ async function cargarVentasHoy() {
   renderHistorial();
 }
 
+// Solo de referencia — muestra en el recuadro de Folio, como marca de
+// agua, el número que le tocaría al próximo vale. El número real y
+// definitivo siempre lo asigna el servidor al guardar (venta_guardar).
+async function cargarSiguienteFolio() {
+  try {
+    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=siguiente_folio&token=${encodeURIComponent(tokenActual)}`);
+    if (data.ok) proximoFolio = data.folio;
+  } catch (err) { /* se queda con el último que traía */ }
+  renderFolioChip();
+}
+function renderFolioChip() {
+  const el = document.getElementById('folio-chip');
+  if (el) el.textContent = proximoFolio ? folioStr(proximoFolio) : '—';
+}
+
 function mostrarError(msg) {
   const box = document.getElementById('error-box');
   box.textContent = msg;
@@ -316,6 +344,26 @@ function mostrarError(msg) {
 // ---------- Disponible: lectura + reserva local mientras se arma el vale ----------
 
 function getCarro(carroId) { return carrosDisponibles.find(c => c.id === carroId); }
+
+// Cuando dos agricultores distintos tienen abierto el mismo número de carro
+// (se repite cada temporada — "206 de Jesse" y "206 de Ramón" al mismo
+// tiempo), elegir el carro por su número solo ya no alcanza para saber cuál
+// de los dos es. Por eso la selección va en dos pasos: primero el número de
+// carro (deduplicado — aparece una sola vez aunque lo tengan varios
+// agricultores), y ese número decide qué agricultores ofrecer en el
+// siguiente campo. Solo cuando también se elige el agricultor queda
+// resuelto el manifiesto real (p.carroId).
+function carrosUnicosPorNumero() {
+  const vistos = new Set();
+  const resultado = [];
+  carrosDisponibles.forEach(c => {
+    if (!vistos.has(c.carro)) { vistos.add(c.carro); resultado.push(c.carro); }
+  });
+  return resultado;
+}
+function carrosConNumero(numero) {
+  return carrosDisponibles.filter(c => c.carro === numero);
+}
 
 // El identificador real y único de cada nave es su NaveID (igual que en el
 // Módulo 3 real) — el carro (ej. "205") es solo la etiqueta visible, y el
@@ -331,6 +379,24 @@ function disponibleBase(carroId, naveId, tamParam) {
   const nave = getNave(carroId, naveId);
   if (!nave) return 0;
   return Number(nave.disponible && nave.disponible[tamParam]) || 0;
+}
+
+// Ajusta "disponible" en memoria SIN esperar al servidor — el mismo truco
+// que ya agilizó el Módulo 3 (aplicarNaveLocal): en vez de bloquear la
+// pantalla hasta que Sheets confirme y volver a pedirle todo el catálogo,
+// aplicamos aquí mismo el cambio que ya sabemos que va a pasar, y de todos
+// modos se sincroniza solo con el servidor en segundo plano poco después.
+// signo = -1 al vender (descuenta), +1 al restaurar (p.ej. al entrar a
+// editar un vale ya guardado, se le regresa lo suyo mientras se edita).
+function ajustarDisponibleLocal(filas, signo) {
+  filas.forEach(f => {
+    const carro = getCarro(f.manifiestoId);
+    if (!carro) return;
+    const nave = (carro.naves || []).find(n => n.id === f.naveId);
+    if (!nave || !nave.disponible) return;
+    const actual = Number(nave.disponible[f.tamano]) || 0;
+    nave.disponible[f.tamano] = actual + signo * (Number(f.cajas) || 0);
+  });
 }
 
 // Disponible real considerando lo que YA se apartó en otras partidas de este
@@ -350,7 +416,7 @@ function disponibleParaTamano(p, tamParam) {
 function nuevaPartida() {
   return {
     id: partidaAutoId++,
-    carroId: '', naveId: '', precio: '',
+    carroNumero: '', carroId: '', naveId: '', precio: '',
     colores: new Set(),
     tamanos: new Set(),
     cajasPorTamano: {},
@@ -397,6 +463,11 @@ function renderPartidaCard(p, idx) {
   const unicoTamano = p.tamanos.size === 1 ? [...p.tamanos][0] : null;
   const cajasValue = unicoTamano ? (p.cajasPorTamano[unicoTamano] ?? '') : (multiTamano ? totalCajas : p.cajasPendiente);
   const carro = p.carroId ? getCarro(p.carroId) : null;
+  // El número de carro puede tener varios agricultores abiertos a la vez
+  // (se repite cada año) — el select de Agricultor solo ofrece los que de
+  // verdad tienen ESE número abierto ahora mismo. Si nada más hay uno, no
+  // hace falta que el usuario elija nada (se resuelve solo).
+  const opcionesAgricultor = p.carroNumero ? carrosConNumero(p.carroNumero) : [];
 
   wrap.innerHTML = `
     <div class="partida-head">
@@ -414,14 +485,17 @@ function renderPartidaCard(p, idx) {
       <div class="row-campos">
         <div>
           <label>Carro</label>
-          <select data-campo="carroId" data-id="${p.id}">
+          <select data-campo="carroNumero" data-id="${p.id}">
             <option value="">Seleccionar…</option>
-            ${carrosDisponibles.map(c => `<option value="${c.id}" ${p.carroId === c.id ? 'selected' : ''}>${c.carro}${c.esDeHoy ? '' : ' ·'}</option>`).join('')}
+            ${carrosUnicosPorNumero().map(num => `<option value="${num}" ${p.carroNumero === num ? 'selected' : ''}>${num}</option>`).join('')}
           </select>
         </div>
         <div>
           <label>Agricultor</label>
-          <input type="text" readonly value="${carro ? carro.agricultor : ''}">
+          <select data-campo="agricultor" data-id="${p.id}" ${!p.carroNumero ? 'disabled' : ''}>
+            <option value="">${!p.carroNumero ? 'Elige un carro primero' : (opcionesAgricultor.length > 1 ? 'Seleccionar…' : '')}</option>
+            ${opcionesAgricultor.map(c => `<option value="${c.id}" ${p.carroId === c.id ? 'selected' : ''}>${c.agricultor}${c.esDeHoy ? '' : ' · no es de hoy'}</option>`).join('')}
+          </select>
         </div>
         <div>
           <label>Invernadero</label>
@@ -571,7 +645,20 @@ document.getElementById('partidas-container').addEventListener('change', async (
     rebuildCard(p);
     return;
   }
-  if (t.dataset.campo === 'carroId') {
+  if (t.dataset.campo === 'carroNumero') {
+    p.carroNumero = t.value;
+    // Si solo hay un agricultor con ese número de carro abierto, se
+    // resuelve solo — no hace falta que el usuario elija nada en
+    // Agricultor. Si hay varios (mismo número, distintos agricultores),
+    // se queda sin resolver hasta que elija en el siguiente campo.
+    const opciones = p.carroNumero ? carrosConNumero(p.carroNumero) : [];
+    p.carroId = opciones.length === 1 ? opciones[0].id : '';
+    p.naveId = '';
+    p.overrideTamanos.clear();
+    rebuildCard(p);
+    return;
+  }
+  if (t.dataset.campo === 'agricultor') {
     p.carroId = t.value;
     p.naveId = '';
     p.overrideTamanos.clear();
@@ -685,9 +772,13 @@ function renderManifiestoPanel() {
   if (!manifiestoTabActivo || !getCarro(manifiestoTabActivo)) {
     manifiestoTabActivo = carrosDisponibles.length ? carrosDisponibles[0].id : null;
   }
+  // Se le agrega el agricultor a la pestaña (no solo el número de carro) —
+  // cuando dos agricultores distintos tienen abierto el mismo número
+  // ("206" de Jesse y "206" de Ramón a la vez), con solo el número no se
+  // sabía cuál pestaña era cuál.
   tabsEl.innerHTML = carrosDisponibles.map(c => `
     <button data-tab="${c.id}" class="${manifiestoTabActivo === c.id ? 'active' : ''} ${c.esDeHoy ? '' : 'tab-later'}"
-      title="${c.esDeHoy ? '' : 'Sigue abierto de días anteriores'}">${c.carro}${c.esDeHoy ? '' : ' ·'}</button>
+      title="Carro ${c.carro} · ${c.agricultor}${c.esDeHoy ? '' : ' · abierto de días anteriores'}">${c.carro} · ${(c.agricultor || '').split(' ')[0]}${c.esDeHoy ? '' : ' ·'}</button>
   `).join('');
 
   const carro = getCarro(manifiestoTabActivo);
@@ -731,19 +822,24 @@ function renderHistorial() {
     listEl.innerHTML = `<div class="historial-vacio">${ventasHoy.length === 0 ? 'Todavía no hay vales guardados hoy.' : 'Sin resultados para esa búsqueda.'}</div>`;
     return;
   }
-  const head = `<div class="historial-fila head"><span>Folio</span><span>Cliente</span><span>Tipo</span><span>Total</span></div>`;
+  const head = `<div class="historial-fila head"><span>Folio</span><span>Cliente</span><span>Tipo</span><span>Total</span><span></span></div>`;
   const rows = items.map(v => `
-    <div class="historial-fila">
+    <div class="historial-fila" data-folio="${v.folio}" role="button" tabindex="0" title="Tocar para editar este vale">
       <span>${folioStr(v.folio)}</span>
       <span>${v.cliente}</span>
       <span class="tipo-pill ${v.tipo === 'CRÉDITO' ? 'credito' : ''}">${v.tipo === 'CRÉDITO' ? 'Crédito' : 'Efectivo'}</span>
       <span class="monto">$${fmt(v.total)}</span>
+      <span class="editar-icono" title="Modificar este vale">✏️</span>
     </div>`).join('');
   listEl.innerHTML = head + rows;
 }
 document.getElementById('historial-buscar').addEventListener('input', renderHistorial);
 document.getElementById('btn-historial').addEventListener('click', () => {
   document.getElementById('historial-overlay').hidden = false;
+});
+document.getElementById('historial-lista').addEventListener('click', (e) => {
+  const fila = e.target.closest('.historial-fila[data-folio]');
+  if (fila) cargarValeParaEditar(Number(fila.dataset.folio));
 });
 document.getElementById('historial-cerrar').addEventListener('click', () => {
   document.getElementById('historial-overlay').hidden = true;
@@ -811,6 +907,76 @@ function resetForm() {
   renderPartidas();
 }
 
+function actualizarBotonImprimirTexto() {
+  const boton = document.getElementById('btn-imprimir');
+  boton.textContent = folioEditando ? `💾 Guardar cambios (vale ${folioStr(folioEditando)})` : '🖨 Imprimir vale';
+}
+
+// Junta las filas planas de un vale guardado (una por tamaño) de vuelta en
+// partidas (una por carro+nave+esMerma, como las arma el formulario) para
+// poder recargarlo y editarlo. Si dos filas comparten carro+nave+esMerma
+// se combinan en una sola partida (es lo que hubiera pasado si se hubieran
+// capturado juntas desde el principio).
+function reconstruirPartidasDesdeFilas(filas) {
+  const grupos = {};
+  const orden = [];
+  filas.forEach(f => {
+    const key = f.manifiestoId + '|' + f.naveId + '|' + (f.esMerma ? '1' : '0');
+    if (!grupos[key]) {
+      grupos[key] = {
+        carroNumero: f.carro, carroId: f.manifiestoId, naveId: f.naveId, esMerma: !!f.esMerma,
+        precio: f.esMerma ? '0' : String(f.precio || ''),
+        tamanos: new Set(), cajasPorTamano: {}
+      };
+      orden.push(key);
+    }
+    grupos[key].tamanos.add(f.tamano);
+    grupos[key].cajasPorTamano[f.tamano] = String(f.cajas);
+  });
+  return orden.slice(0, 5).map(key => Object.assign(nuevaPartida(), grupos[key]));
+}
+
+// ---------- Editar un vale ya guardado ----------
+
+async function cargarValeParaEditar(folio) {
+  try {
+    const url = `${APPS_SCRIPT_URL}?action=venta_detalle&token=${encodeURIComponent(tokenActual)}&folio=${encodeURIComponent(folio)}`;
+    const data = await llamarJSONP(url);
+    if (data.error === 'no_autorizado') { await volverALogin(); return; }
+    if (!data.ok) { mostrarToast(data.error || 'No se pudo cargar ese vale.', 'warn'); return; }
+
+    document.getElementById('historial-overlay').hidden = true;
+
+    // Le regresamos localmente a "disponible" las cajas que ya tenía este
+    // vale, para no toparnos con avisos de "ya no hay" al re-capturar sus
+    // propias cajas mientras se edita.
+    ajustarDisponibleLocal(data.filas, +1);
+    renderManifiestoPanel();
+
+    folioEditando = folio;
+    clienteInput.value = data.cliente || '';
+    partidas = reconstruirPartidasDesdeFilas(data.filas);
+    if (partidas.length === 0) partidas = [nuevaPartida()];
+    renderPartidas();
+    actualizarBotonImprimirTexto();
+
+    const banner = document.getElementById('editando-banner');
+    banner.hidden = false;
+    document.getElementById('editando-texto').textContent = `Editando vale ${folioStr(folio)} — al guardar se actualiza, no se crea uno nuevo.`;
+    banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch (err) {
+    mostrarToast('Sin conexión — no se pudo cargar ese vale para editar.', 'warn');
+  }
+}
+
+document.getElementById('btn-cancelar-edicion').addEventListener('click', async () => {
+  folioEditando = null;
+  document.getElementById('editando-banner').hidden = true;
+  resetForm();
+  actualizarBotonImprimirTexto();
+  await cargarDisponible(); // vuelve a traer del servidor el disponible real, sin el ajuste local temporal de arriba
+});
+
 document.getElementById('btn-imprimir').addEventListener('click', async () => {
   const validas = partidasValidas();
   if (validas.length === 0) {
@@ -822,12 +988,13 @@ document.getElementById('btn-imprimir').addEventListener('click', async () => {
   const cliente = clienteRaw || 'PÚBLICO GENERAL';
   const tipo = clienteRaw ? 'CRÉDITO' : 'EFECTIVO / PÚBLICO GENERAL';
   const totalVale = filasNuevas.reduce((a, f) => a + (f.esMerma ? 0 : f.cajas * f.precio), 0);
+  const editandoAhora = folioEditando;
   const boton = document.getElementById('btn-imprimir');
-  const textoOriginal = boton.textContent;
   boton.disabled = true;
-  boton.textContent = 'Guardando...';
+  boton.textContent = editandoAhora ? 'Guardando cambios...' : 'Guardando...';
 
   const payload = { cliente: clienteRaw, filas: filasNuevas, fecha: fechaHoyCDMX() };
+  if (editandoAhora) payload.folioEditar = editandoAhora;
 
   try {
     let folioUsado = null;
@@ -835,27 +1002,45 @@ document.getElementById('btn-imprimir').addEventListener('click', async () => {
     if (navigator.onLine) {
       try {
         const params = new URLSearchParams({ action: 'venta_guardar', token: tokenActual, cliente: clienteRaw, fecha: payload.fecha, filas: JSON.stringify(filasNuevas) });
+        if (editandoAhora) params.set('folioEditar', editandoAhora);
         const data = await llamarJSONP(`${APPS_SCRIPT_URL}?${params.toString()}`);
         if (data.ok) { folioUsado = data.folio; ok = true; }
       } catch (err) { /* cae a la cola de pendientes abajo */ }
     }
     if (!ok) {
       await encolar('venta_guardar', payload);
-      folioUsado = 'PENDIENTE';
+      folioUsado = editandoAhora || 'PENDIENTE';
       mostrarToast('Sin conexión — el vale se guardó en este dispositivo y se sincronizará solo cuando regrese la señal.', 'info');
     } else {
-      mostrarToast(`Vale ${folioStr(folioUsado)} guardado e impreso — ${cliente} — $${fmt(totalVale)}`, 'ok');
+      mostrarToast(`Vale ${folioStr(folioUsado)} ${editandoAhora ? 'actualizado' : 'guardado'} e impreso — ${cliente} — $${fmt(totalVale)}`, 'ok');
     }
+
+    // Se aplica el descuento de inventario aquí mismo, sin esperar a que
+    // Sheets confirme y sin volver a pedirle todo el catálogo — el mismo
+    // truco que ya agilizó el Módulo 3. El folio y el ticket ya se pueden
+    // mostrar/imprimir de inmediato.
+    ajustarDisponibleLocal(filasNuevas, -1);
+    renderManifiestoPanel();
 
     document.getElementById('print-area').innerHTML = generarTicketHTML(folioUsado === 'PENDIENTE' ? '?????' : folioUsado, cliente, tipo, filasNuevas, totalVale);
     window.print();
 
-    await cargarDisponible();
-    await cargarVentasHoy();
+    folioEditando = null;
+    document.getElementById('editando-banner').hidden = true;
     resetForm();
+    actualizarBotonImprimirTexto();
+
+    // El catálogo real y el historial se sincronizan en segundo plano —
+    // esto ya NO bloquea que se pueda capturar el siguiente vale de
+    // inmediato (antes eran dos idas y vueltas más antes de soltar la UI).
+    cargarDisponible();
+    cargarVentasHoy();
+    // Solo si fue un vale NUEVO se consumió un folio — al editar uno ya
+    // guardado, el próximo folio que le toca al siguiente vale no cambia.
+    if (!editandoAhora) cargarSiguienteFolio();
   } finally {
     boton.disabled = false;
-    boton.textContent = textoOriginal;
+    actualizarBotonImprimirTexto();
   }
 });
 
@@ -880,6 +1065,7 @@ async function sincronizar() {
       try {
         const p = item.payload;
         const params = new URLSearchParams({ action: 'venta_guardar', token: tokenActual, cliente: p.cliente, fecha: p.fecha, filas: JSON.stringify(p.filas) });
+        if (p.folioEditar) params.set('folioEditar', p.folioEditar);
         const data = await llamarJSONP(`${APPS_SCRIPT_URL}?${params.toString()}`);
         if (!data.ok) throw new Error(data.error || 'error');
         await borrarPendiente(item.id);

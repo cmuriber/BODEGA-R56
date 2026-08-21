@@ -179,6 +179,38 @@
     font-family: 'Inter', sans-serif;
   }
 
+  /* --- Nav a otros módulos: pills llamativos, los 3 siempre visibles,
+     el módulo activo se ve resaltado en verde en vez de como link normal.
+     Selector con 2 clases a propósito — así le gana en especificidad a
+     ".top-acciones a" de arriba sin depender del orden en el archivo. */
+  .modulos-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .modulos-nav .modulo-link {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--text-dim);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 7px 14px;
+    white-space: nowrap;
+    cursor: default;
+  }
+  .modulos-nav a.modulo-link { cursor: pointer; }
+  .modulos-nav a.modulo-link:hover { border-color: var(--tallo); color: var(--tallo); }
+  .modulos-nav .modulo-link.activo { background: var(--tallo); border-color: var(--tallo); color: #fff; }
+
+  /* --- Quién tiene la sesión abierta --- */
+  .usuario-chip {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
   #sello-chip {
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
@@ -550,6 +582,14 @@
   }
   #toast[hidden] { display: none; }
   #toast.toast--pendiente { background: var(--ambar); }
+
+  /* Un poco más de aire en pantallas de PC — evita que el título se
+     encime con el nav/nombre de usuario nuevos de la barra de arriba. */
+  @media (min-width: 860px) {
+    body { max-width: 1100px; }
+    .top { flex-wrap: wrap; gap: 10px; }
+    .marca { white-space: nowrap; }
+  }
 </style>
 </head>
 <body>
@@ -583,8 +623,13 @@
         <div class="titulo-modulo">Manifiesto de Carro</div>
       </div>
       <div class="top-acciones">
+        <nav class="modulos-nav">
+          <a class="modulo-link" href="./index.html">Dashboard</a>
+          <span class="modulo-link activo">Manifiesto</span>
+          <a class="modulo-link" href="./vale.html">Vale</a>
+        </nav>
+        <span class="usuario-chip" id="usuario-chip"></span>
         <span id="sello-chip">AL DÍA</span>
-        <a href="./index.html">Dashboard</a>
         <button id="btn-salir" type="button">Salir</button>
       </div>
     </div>

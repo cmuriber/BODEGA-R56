@@ -245,6 +245,7 @@ function llamarJSONP(url, timeoutMs = 10000) {
 // backend al autenticarnos, y mandarlo en cada consulta.
 
 let tokenActual = null;
+let usuarioNombre = null;
 let temporizadorRefresco = null;
 
 function mostrarLogin() {
@@ -258,9 +259,12 @@ function mostrarDashboard() {
   document.getElementById('dashboard-view').hidden = false;
 }
 
-async function iniciarSesionConToken(token) {
+async function iniciarSesionConToken(token, nombre) {
   tokenActual = token;
+  usuarioNombre = nombre || usuarioNombre;
   mostrarDashboard();
+  const usuarioChip = document.getElementById('usuario-chip');
+  if (usuarioChip) usuarioChip.textContent = usuarioNombre || '';
   await cargarDashboard();
 
   if (temporizadorRefresco) clearInterval(temporizadorRefresco);
@@ -290,7 +294,7 @@ document.getElementById('login-form').addEventListener('submit', async (ev) => {
     }
 
     await guardarSesion(data.token, data.nombre, data.rol);
-    await iniciarSesionConToken(data.token);
+    await iniciarSesionConToken(data.token, data.nombre);
   } catch (err) {
     errorBox.textContent = 'Sin conexión. Intenta de nuevo.';
   } finally {
@@ -363,7 +367,7 @@ if ('serviceWorker' in navigator) {
 (async function arrancar() {
   const sesion = await leerSesion().catch(() => null);
   if (sesion && sesion.token) {
-    await iniciarSesionConToken(sesion.token);
+    await iniciarSesionConToken(sesion.token, sesion.nombre);
   } else {
     mostrarLogin();
   }
