@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#f3f5f4">
-<title>Bodega R-56 — Manifiesto de Carro</title>
+<meta name="theme-color" content="#1f6f43">
+<title>Bodega R-56 — Nueva Venta / Vale</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icon.svg">
 <link rel="apple-touch-icon" href="./icon.svg">
@@ -550,7 +550,213 @@
   }
   #toast[hidden] { display: none; }
   #toast.toast--pendiente { background: var(--ambar); }
+
+  /* ---------- Módulo 4: Nueva Venta / Vale ---------- */
+
+  .admin-chip {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ambar); border: 1px solid var(--ambar); border-radius: 20px; padding: 3px 9px;
+    background: rgba(183,121,31,0.1);
+  }
+  .admin-chip[hidden] { display: none; }
+
+  .encabezado-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 20px 0; }
+  .historial-fila-wrap { display: flex; justify-content: flex-end; margin: 8px 20px 0; }
+  .folio-chip {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 10px;
+    padding: 9px 11px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 18px;
+  }
+  .fecha-chip {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 10px;
+    padding: 9px 11px; font-size: 14px; color: var(--text-dim); display: flex; align-items: center;
+  }
+  .cliente-campo { margin: 12px 20px 0; position: relative; }
+  .cliente-campo label {
+    display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-dim); margin-bottom: 4px;
+  }
+  .cliente-campo .hint { text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .cliente-campo input {
+    width: 100%; background: #fafbfa; border: 1px solid var(--card-border); border-radius: 9px;
+    padding: 10px 12px; font-size: 15px; color: var(--text); font-family: 'Inter', sans-serif;
+  }
+  .cliente-campo input:focus { outline: none; border-color: var(--dorado); }
+  #cliente-suggerencias {
+    display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30;
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 10px;
+    max-height: 220px; overflow-y: auto; box-shadow: 0 8px 24px rgba(23,85,52,0.12);
+  }
+  #cliente-suggerencias.show { display: block; }
+  #cliente-suggerencias .opt { padding: 10px 12px; font-size: 14px; cursor: pointer; }
+  #cliente-suggerencias .opt:active { background: var(--bg); }
+
+  .partidas-header { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 20px 8px; }
+  #partidas-container { margin: 0 20px; display: flex; flex-direction: column; gap: 12px; }
+
+  .partida {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow: hidden;
+  }
+  .partida-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 12px; background: rgba(31,111,67,0.06); border-bottom: 1px solid var(--card-border);
+  }
+  .partida-tag { font-size: 12px; font-weight: 700; color: var(--text-dim); }
+  .partida-head-derecha { display: flex; align-items: center; gap: 10px; }
+  .partida-total { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: var(--tallo); }
+  .partida-quitar { border: none; background: transparent; color: var(--tomate); font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 4px; }
+  .partida-quitar:disabled { opacity: 0.35; }
+
+  .partida-body { padding: 12px; }
+  .row-campos {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    grid-template-areas: "carro agri" "inv inv" "cajas precio" "total total";
+  }
+  .row-campos > div:nth-child(1) { grid-area: carro; }
+  .row-campos > div:nth-child(2) { grid-area: agri; }
+  .row-campos > div:nth-child(3) { grid-area: inv; }
+  .row-campos > div:nth-child(4) { grid-area: cajas; }
+  .row-campos > div:nth-child(5) { grid-area: precio; }
+  .row-campos > div:nth-child(6) { grid-area: total; }
+
+  .row-campos label {
+    display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-dim); margin-bottom: 4px;
+  }
+  .row-campos select, .row-campos input[type=number], .row-campos input[type=text] {
+    width: 100%; background: #fafbfa; border: 1px solid var(--card-border); border-radius: 9px;
+    padding: 9px 10px; font-size: 14px; color: var(--text); font-family: 'Inter', sans-serif;
+  }
+  .row-campos select:focus, .row-campos input:focus { outline: none; border-color: var(--dorado); }
+  .row-campos input[readonly] { color: var(--text-dim); }
+  .total-campo {
+    background: rgba(31,111,67,0.08); border: 1px solid rgba(31,111,67,0.25); border-radius: 9px;
+    padding: 9px 10px; font-weight: 700; color: var(--tallo); text-align: right; font-variant-numeric: tabular-nums;
+  }
+
+  .merma-nota {
+    margin-top: 10px; padding: 8px 10px; border-radius: 9px;
+    background: rgba(183,121,31,0.1); border: 1px solid var(--ambar); color: var(--dorado-dim); font-size: 12px; font-weight: 600;
+  }
+
+  .checks-fila { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+  .checks-grupo .g-label {
+    font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;
+    letter-spacing: 0.06em; margin-bottom: 6px; display: block;
+  }
+  .checks-grupo .opciones { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip-check {
+    display: inline-flex; align-items: center; gap: 5px;
+    border: 1px solid var(--card-border); border-radius: 999px; padding: 6px 11px 6px 8px;
+    font-size: 12.5px; cursor: pointer; background: #fafbfa; color: var(--text); user-select: none;
+  }
+  .chip-check input { margin: 0; accent-color: var(--tallo); }
+  .chip-check.checked { background: var(--tallo); border-color: var(--tallo); color: #fff; }
+  .chip-check.checked input { accent-color: #fff; }
+  .chip-check.size.checked { background: var(--tomate); border-color: var(--tomate); }
+  .chip-check.merma { font-weight: 700; }
+  .chip-check.merma.checked { background: var(--ambar); border-color: var(--ambar); }
+
+  .size-unit { display: flex; flex-direction: column; gap: 4px; }
+  input.size-qty {
+    width: 46px; background: #fafbfa; border: 1px solid var(--card-border); border-radius: 7px;
+    padding: 4px 6px; font-size: 12px; text-align: center; color: var(--text);
+  }
+  input.size-qty:focus { outline: none; border-color: var(--dorado); }
+
+  .agotado-aviso {
+    display: none; margin-top: 10px; padding: 8px 10px; border-radius: 9px;
+    background: rgba(192,57,43,0.1); border: 1px solid var(--tomate); color: var(--tomate-dim); font-size: 12px; font-weight: 600;
+  }
+  .agotado-aviso.show { display: block; }
+
+  .agregar-partida-btn {
+    margin: 4px 20px 0; padding: 12px; border: 1px dashed var(--card-border); border-radius: 12px;
+    background: transparent; color: var(--tallo); font-weight: 700; font-size: 13px; cursor: pointer; text-align: center;
+  }
+  .agregar-partida-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .total-vale-bar { margin: 20px 20px 0; display: flex; flex-direction: column; gap: 4px; }
+  .total-vale-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); font-weight: 600; }
+  #total-vale { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px; color: var(--tallo); }
+  .total-vale-hint { font-size: 11px; color: var(--text-dim); }
+  .imprimir-wrap { margin: 14px 20px calc(24px + env(safe-area-inset-bottom)); }
+
+  /* ---------- Manifiesto (solo consulta) ---------- */
+  .manifiesto-panel { margin: 26px 20px 0; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow: hidden; }
+  .manifiesto-nota {
+    margin: 10px 12px 0; padding: 8px 10px; border-radius: 9px; font-size: 11.5px;
+    background: rgba(183,121,31,0.1); border: 1px solid var(--ambar); color: var(--dorado-dim);
+  }
+  .manifiesto-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 10px 8px; max-height: 46px; overflow-y: auto; }
+  .manifiesto-tabs button {
+    border: none; background: var(--bg); border: 1px solid var(--card-border);
+    padding: 7px 11px; font-size: 12px; font-weight: 700; color: var(--text-dim); border-radius: 8px; cursor: pointer; white-space: nowrap;
+  }
+  .manifiesto-tabs button.active { background: #fff; color: var(--tallo); border-color: var(--tallo); }
+  .manifiesto-tabs button.tab-later { border-style: dashed; color: var(--ambar); }
+  .manifiesto-body { border-top: 1px solid var(--card-border); padding: 10px 12px 12px; max-height: 320px; overflow-y: auto; }
+  .manifiesto-meta { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+  .manifiesto-meta b { color: var(--text); }
+  .badge-later { color: var(--ambar); font-weight: 700; }
+  table.manifiesto-tabla { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.manifiesto-tabla thead th {
+    text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim);
+    padding: 4px 4px; border-bottom: 1px solid var(--card-border);
+  }
+  table.manifiesto-tabla td { padding: 5px 4px; border-bottom: 1px solid #f0f2f1; }
+  .disp-badge {
+    display: inline-block; min-width: 28px; text-align: center; padding: 2px 6px; border-radius: 6px;
+    font-weight: 700; font-variant-numeric: tabular-nums; background: rgba(31,111,67,0.12); color: var(--tallo);
+  }
+  .disp-badge.bajo { background: rgba(183,121,31,0.15); color: var(--dorado-dim); }
+  .disp-badge.cero { background: rgba(192,57,43,0.12); color: var(--tomate); }
+  .disp-badge.negativo { background: var(--tomate); color: #fff; }
+  .manifiesto-vacio, .manifiesto-vacio-fila { color: var(--text-dim); font-size: 13px; padding: 10px; text-align: center; }
+
+  /* ---------- Historial de vales (modal) ---------- */
+  #btn-historial {
+    font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: var(--text-dim);
+    text-decoration: none; border: 1px solid var(--card-border); border-radius: 20px; padding: 5px 12px;
+    background: transparent; cursor: pointer; white-space: nowrap;
+  }
+  #historial-buscar {
+    width: 100%; background: #fafbfa; border: 1px solid var(--card-border); border-radius: 9px;
+    padding: 9px 11px; font-size: 14px; color: var(--text); margin-bottom: 10px; font-family: 'Inter', sans-serif;
+  }
+  #historial-buscar:focus { outline: none; border-color: var(--dorado); }
+  .historial-fila {
+    display: grid; grid-template-columns: 58px 1fr 70px 70px; gap: 8px; align-items: center;
+    padding: 9px 4px; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
+  }
+  .historial-fila.head { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); font-weight: 700; border-bottom: 1px solid var(--card-border); }
+  .historial-fila .monto { text-align: right; font-weight: 700; }
+  .tipo-pill { font-size: 10.5px; font-weight: 700; padding: 3px 7px; border-radius: 999px; background: rgba(31,111,67,0.12); color: var(--tallo); text-align: center; }
+  .tipo-pill.credito { background: rgba(183,121,31,0.15); color: var(--dorado-dim); }
+  .historial-vacio { color: var(--text-dim); font-size: 13px; padding: 16px 4px; text-align: center; }
+
+  /* ---------- Modal de advertencia de inventario (reusa .modal-fondo/.modal-caja) ---------- */
+  #modal-aviso .modal-caja { text-align: center; padding-top: 22px; }
+  #modal-aviso .aviso-icono { font-size: 34px; margin-bottom: 6px; }
+  #modal-aviso .modal-titulo { justify-content: center; }
+  #modal-msg { font-size: 14px; color: var(--text-dim); margin-bottom: 16px; }
+
+  /* ---------- Ticket de impresión ---------- */
+  #print-area { display: none; }
+  @media print {
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area {
+      display: block; position: absolute; left: 0; top: 0; width: 100%;
+      font-family: 'Inter', sans-serif; color: #000; font-size: 12px;
+    }
+    #print-area h2 { font-family: 'Barlow Condensed', sans-serif; text-align: center; margin: 0 0 4px; }
+    #print-area .center { text-align: center; }
+    #print-area table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    #print-area th, #print-area td { border-bottom: 1px solid #ccc; padding: 3px 4px; font-size: 11px; text-align: left; }
+    #print-area .tot { font-weight: 700; font-size: 15px; margin-top: 8px; text-align: right; }
+  }
 </style>
+
 </head>
 <body>
 
@@ -580,10 +786,10 @@
     <div class="top">
       <div>
         <div class="marca">Bodega R-56</div>
-        <div class="titulo-modulo">Manifiesto de Carro</div>
+        <div class="titulo-modulo">Nueva Venta / Vale</div>
       </div>
       <div class="top-acciones">
-        <span id="sello-chip">AL DÍA</span>
+        <span class="admin-chip" id="admin-chip" hidden>Admin</span>
         <a href="./index.html">Dashboard</a>
         <button id="btn-salir" type="button">Salir</button>
       </div>
@@ -591,118 +797,87 @@
 
     <div id="error-box" hidden></div>
 
-    <!-- Vista: lista de camiones del día -->
-    <div id="vista-lista">
-
-      <div class="buscador-seccion">
-        <span class="buscador-label">Proveedores</span>
-        <div id="buscar-sugerencias" class="buscar-sugerencias"></div>
+    <div class="encabezado-fila">
+      <div>
+        <label class="campo-label-inline">Fecha</label>
+        <div class="fecha-chip" id="fecha-chip">—</div>
       </div>
-
-      <div id="bloque-resultados-busqueda" hidden>
-        <div class="seccion resultados-header">
-          <div class="seccion-titulo">Carros de <span id="resultados-agricultor-nombre"></span></div>
-          <button class="btn-texto" id="btn-ver-hoy" type="button">Camiones de hoy</button>
-        </div>
-        <div class="buscando-msg" id="buscando-msg" hidden>Buscando...</div>
-        <ul id="lista-busqueda"></ul>
-      </div>
-
-      <div id="bloque-hoy">
-        <div class="seccion">
-          <div class="seccion-titulo">Camiones de hoy</div>
-        </div>
-        <ul id="lista-carros"></ul>
-      </div>
-
-      <div style="height: 90px;"></div>
-      <button class="btn-primario fab-nuevo" id="btn-nuevo-carro" type="button">+ Nuevo Carro</button>
-    </div>
-
-    <!-- Vista: detalle de un manifiesto -->
-    <div id="vista-detalle" hidden>
-      <button class="btn-texto" id="btn-volver-lista" type="button" style="margin: 16px 20px 0;">← Camiones de hoy</button>
-      <div class="detalle-header">
-        <div class="detalle-carro" id="detalle-carro">—</div>
-        <div class="detalle-agricultor" id="detalle-agricultor">—</div>
-        <div class="detalle-stats">
-          <span>Estado: <b id="detalle-estado">—</b></span>
-          <span>Cajas: <b id="detalle-cajas">0</b></span>
-        </div>
-      </div>
-      <ul id="lista-naves"></ul>
-      <div class="acciones-detalle">
-        <button class="btn-primario" id="btn-nave-nueva" type="button">NAVE NUEVA</button>
-        <button class="btn-secundario" id="btn-finalizar" type="button">Finalizar manifiesto</button>
-        <button class="btn-secundario" id="btn-reabrir" type="button" hidden>Reabrir (admin)</button>
-        <button class="btn-secundario btn-peligro" id="btn-eliminar" type="button" hidden>Eliminar carro (admin)</button>
+      <div>
+        <label class="campo-label-inline">&nbsp;</label>
+        <div class="folio-chip">Folio al guardar</div>
       </div>
     </div>
 
+    <div class="historial-fila-wrap">
+      <button id="btn-historial" type="button">🧾 Vales guardados</button>
+    </div>
+
+    <div class="cliente-campo">
+      <label>Cliente <span class="hint">(vacío = efectivo/público general · con nombre = crédito)</span></label>
+      <input type="text" id="cliente-input" placeholder="Escribe para buscar o captura un nombre nuevo…" autocomplete="off">
+      <div id="cliente-suggerencias"></div>
+    </div>
+
+    <div class="partidas-header">
+      <div class="seccion-titulo">Partidas</div>
+      <div id="partidas-count" class="carro-fecha">1 de 5</div>
+    </div>
+    <div id="partidas-container"></div>
+
+    <button class="agregar-partida-btn" id="btn-agregar-partida" type="button">+ Agregar partida (otro carro)</button>
+
+    <div class="total-vale-bar">
+      <div class="total-vale-label">Total del vale</div>
+      <div id="total-vale">$0</div>
+      <div class="total-vale-hint">Al imprimir, el vale se guarda y el formulario se limpia automáticamente.</div>
+    </div>
+    <div class="imprimir-wrap">
+      <button class="btn-primario" id="btn-imprimir" type="button">🖨 Imprimir vale</button>
+    </div>
+
+    <div class="manifiesto-panel">
+      <div class="seccion" style="margin:12px 12px 0;">
+        <div class="seccion-titulo" style="font-size:15px;">Manifiesto (consulta)</div>
+      </div>
+      <div class="manifiesto-nota">Solo consulta visual — no llena el formulario de venta.</div>
+      <div class="manifiesto-tabs" id="manifiesto-tabs"></div>
+      <div class="manifiesto-body" id="manifiesto-body"></div>
+    </div>
+
+    <div style="height:20px;"></div>
   </div>
 
-  <!-- Modal: nuevo carro -->
-  <div class="modal-fondo" id="modal-carro" hidden>
+  <!-- Modal: advertencia de inventario -->
+  <div class="modal-fondo" id="modal-aviso" hidden>
     <div class="modal-caja">
-      <div class="modal-titulo">Nuevo Carro</div>
-      <div class="campo">
-        <label for="carro-agricultor">Agricultor</label>
-        <select id="carro-agricultor"></select>
-      </div>
-      <div class="campo">
-        <label for="carro-numero">Número de Carro</label>
-        <input type="text" id="carro-numero" inputmode="numeric" placeholder="Ej. 5">
-      </div>
-      <div class="campo-error" id="carro-error"></div>
+      <div class="aviso-icono">⚠️</div>
+      <div class="modal-titulo">Existencia agotada</div>
+      <div id="modal-msg"></div>
       <div class="modal-acciones">
-        <button class="btn-secundario" id="btn-cancelar-carro" type="button">Cancelar</button>
-        <button class="btn-primario" id="btn-crear-carro" type="button">Crear</button>
+        <button class="btn-secundario" id="modal-no-ajustar" type="button">No, ajustar</button>
+        <button class="btn-primario" id="modal-si-continuar" type="button">Sí, continuar</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal: nave -->
-  <div class="modal-fondo" id="modal-nave" hidden>
+  <!-- Modal: historial de vales del día -->
+  <div class="modal-fondo" id="historial-overlay" hidden>
     <div class="modal-caja">
-      <div class="modal-titulo" id="modal-nave-titulo">Nave Nueva</div>
-      <div class="campo-fila3">
-        <div class="campo">
-          <label for="nave-invernadero">Invernadero</label>
-          <select id="nave-invernadero"></select>
-        </div>
-        <div class="campo">
-          <label for="nave-letra">Letra</label>
-          <select id="nave-letra"></select>
-        </div>
-        <div class="campo">
-          <label for="nave-semilla">Semilla</label>
-          <select id="nave-semilla"></select>
-        </div>
+      <div class="modal-titulo">Vales guardados hoy</div>
+      <input type="text" id="historial-buscar" placeholder="Buscar por folio o cliente…">
+      <div id="historial-lista"></div>
+      <div class="modal-acciones" style="margin-top:14px;">
+        <button class="btn-secundario" id="historial-cerrar" type="button">Cerrar</button>
       </div>
-      <div class="grid-tamanos" id="grid-tamanos"></div>
-      <div class="campo-error" id="nave-error"></div>
-      <div class="modal-acciones">
-        <button class="btn-secundario" id="btn-cancelar-nave" type="button">Cancelar</button>
-        <button class="btn-primario" id="btn-guardar-nave" type="button">OK / Ingresar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: compendio final -->
-  <div class="modal-fondo" id="modal-compendio" hidden>
-    <div class="modal-caja">
-      <div class="modal-titulo">Compendio del Manifiesto</div>
-      <div class="compendio-tabla" id="compendio-tabla"></div>
-      <div class="compendio-total">
-        <span>Total de cajas</span>
-        <span class="num" id="compendio-total">0</span>
-      </div>
-      <button class="btn-primario" id="btn-cerrar-compendio" type="button" style="margin-top: 16px;">Listo</button>
     </div>
   </div>
 
   <div id="toast" hidden></div>
+  <div id="print-area"></div>
 
-  <script src="./app-manifiesto.js"></script>
+  <script src="./app-vale.js"></script>
+  <script>
+    document.getElementById('fecha-chip').textContent = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+  </script>
 </body>
 </html>

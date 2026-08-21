@@ -1,14 +1,16 @@
 // Bodega R-56 — Service Worker
-// Cachea el shell de la app (Dashboard + Manifiesto de Carro) para que abra
-// sin internet. Los datos se manejan aparte con IndexedDB (ver app.js y
-// app-manifiesto.js).
+// Cachea el shell de la app (Dashboard + Manifiesto de Carro + Vale) para
+// que abra sin internet. Los datos se manejan aparte con IndexedDB (ver
+// app.js, app-manifiesto.js y app-vale.js).
 
-const CACHE_NAME = 'r56-dashboard-v6';
+const CACHE_NAME = 'r56-dashboard-v7';
 const SHELL_FILES = [
   './index.html',
   './app.js',
   './manifiesto.html',
   './app-manifiesto.js',
+  './vale.html',
+  './app-vale.js',
   './manifest.json',
   './icon.svg'
 ];

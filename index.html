@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1B1917">
+<meta name="theme-color" content="#f3f5f4">
 <title>Bodega R-56 — Dashboard</title>
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" href="./icon.svg">
@@ -12,17 +12,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #1B1917;
-    --card: #262320;
-    --card-border: #3A3530;
-    --tomate: #D8492F;
-    --tomate-dim: #7A2E1F;
-    --tallo: #6B8F5C;
-    --ambar: #E0A526;
-    --dorado: #D4AF37;
-    --dorado-dim: #8A6E1F;
-    --text: #F3EEE4;
-    --text-dim: #A69C8C;
+    --bg: #f3f5f4;
+    --card: #ffffff;
+    --card-border: #dfe4e1;
+    --tomate: #c0392b;
+    --tomate-dim: #96301f;
+    --tallo: #1f6f43;
+    --ambar: #b7791f;
+    --dorado: #b7791f;
+    --dorado-dim: #8a6a1f;
+    --text: #202824;
+    --text-dim: #667a70;
   }
 
   * { box-sizing: border-box; }
@@ -120,7 +120,7 @@
   #error-box {
     margin: 16px 20px 0;
     padding: 10px 14px;
-    background: rgba(224, 165, 38, 0.15);
+    background: rgba(183, 121, 31, 0.15);
     border: 1px solid var(--ambar);
     color: var(--ambar);
     font-size: 13px;
@@ -266,7 +266,7 @@
     justify-content: center;
     padding: 24px;
     background:
-      radial-gradient(circle at 50% 0%, rgba(212,175,55,0.06), transparent 60%),
+      radial-gradient(circle at 50% 0%, rgba(183,121,31,0.06), transparent 60%),
       var(--bg);
   }
   #login-view[hidden] { display: none; }
@@ -274,12 +274,12 @@
   .login-card {
     width: 100%;
     max-width: 360px;
-    background: linear-gradient(165deg, #221F1B 0%, #16140F 100%);
-    border: 1px solid rgba(212,175,55,0.25);
+    background: linear-gradient(165deg, #ffffff 0%, #fafbfa 100%);
+    border: 1px solid rgba(183,121,31,0.25);
     border-radius: 18px;
     padding: 36px 28px 28px;
     position: relative;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    box-shadow: 0 12px 32px rgba(23,85,52,0.12), 0 2px 8px rgba(23,85,52,0.08);
   }
   .login-card::before {
     content: '';
@@ -326,8 +326,8 @@
   }
   .login-field input {
     width: 100%;
-    background: #14120E;
-    border: 1px solid rgba(212,175,55,0.2);
+    background: #fafbfa;
+    border: 1px solid rgba(183,121,31,0.2);
     border-radius: 10px;
     padding: 13px 14px;
     font-size: 15px;
@@ -340,7 +340,7 @@
   }
 
   #login-error {
-    color: #E88A6B;
+    color: #c0392b;
     font-size: 13px;
     text-align: center;
     margin: -4px 0 14px;
@@ -352,8 +352,8 @@
     padding: 14px;
     border: none;
     border-radius: 10px;
-    background: linear-gradient(135deg, #E8C766, var(--dorado) 60%, #B8912A);
-    color: #1B1917;
+    background: linear-gradient(135deg, #1f6f43, #175534);
+    color: #f3f5f4;
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
     font-size: 15px;
@@ -397,6 +397,7 @@
       <div id="fecha-label">—</div>
     </div>
     <div class="top-derecha">
+      <a class="nav-link" href="./vale.html">Vale</a>
       <a class="nav-link" href="./manifiesto.html">Manifiesto</a>
       <div class="sello-wrap">
         <button id="refrescar" aria-label="Actualizar">⟳</button>
