@@ -783,9 +783,30 @@
   }
   #historial-buscar:focus { outline: none; border-color: var(--dorado); }
   .historial-hint { font-size: 11.5px; color: var(--text-dim); margin: -4px 0 10px; }
+  /* En un día con muchos vales, la lista completa se puede volver más alta
+     que la ventana — antes se desplazaba TODO el modal en bloque (título,
+     buscador y botón Cerrar incluidos), lo que se sentía apretado y hacía
+     perder de vista el buscador. Ahora solo la LISTA se desplaza por
+     dentro, con su propio scroll, y el resto queda siempre a la vista. */
+  #historial-overlay .modal-caja {
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  #historial-lista {
+    overflow-y: auto; min-height: 0; flex: 1 1 auto;
+  }
+  #historial-overlay .modal-acciones { flex: 0 0 auto; }
   .historial-fila {
     display: grid; grid-template-columns: 58px 1fr 70px 70px 26px; gap: 8px; align-items: center;
     padding: 9px 4px; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
+  }
+  /* Sin esto, una celda de grid nunca se encoge más allá del ancho natural
+     de su contenido (min-width:auto es el default en CSS Grid) — un folio
+     o cliente más largo de lo normal se desborda VISUALMENTE encima de la
+     columna de al lado en vez de recortarse. min-width:0 deja que la
+     columna sí se encoja al ancho que le toca, y el resto recorta con "…"
+     en vez de encimarse con el texto vecino. */
+  .historial-fila > span {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .historial-fila[data-folio] { cursor: pointer; }
   .historial-fila[data-folio]:hover { background: rgba(31,111,67,0.05); }
