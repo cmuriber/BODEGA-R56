@@ -877,34 +877,34 @@ function filasPorTamano(validas) {
   return filas;
 }
 
+// Formato de ticket angosto (impresora térmica de 80mm) — un renglón por
+// partida en vez de tabla de columnas, que en 72-76mm de ancho se vuelve
+// ilegible. Ver estilos de impresión en vale.html (@media print).
 function generarTicketHTML(folio, cliente, tipo, filas, totalVale) {
   const rows = filas.map(f => {
     const label = (CAMPOS_TAMANO.find(t => t.param === f.tamano) || {}).label || f.tamano;
+    const detalle = [f.invernadero, f.letra, f.semilla].filter(Boolean).join(' · ');
+    const importe = f.esMerma ? '—' : `$${fmt(f.cajas * f.precio)}`;
     return `
-    <tr>
-      <td>${f.carro}</td>
-      <td>${[f.invernadero, f.letra, f.semilla].filter(Boolean).join(' · ')}</td>
-      <td>${label}${f.esMerma ? ' (MERMA)' : ''}</td>
-      <td style="text-align:right;">${f.cajas}</td>
-      <td style="text-align:right;">${f.esMerma ? '—' : '$' + fmt(f.precio)}</td>
-      <td style="text-align:right;">${f.esMerma ? '—' : '$' + fmt(f.cajas * f.precio)}</td>
-    </tr>`;
+    <div class="reng">
+      <div class="reng-top">Carro ${f.carro} · ${label}${f.esMerma ? ' (MERMA)' : ''}</div>
+      ${detalle ? `<div class="reng-sub">${detalle}</div>` : ''}
+      <div class="reng-bottom"><span>${f.cajas} caja${f.cajas === 1 ? '' : 's'}${f.esMerma ? '' : ' × $' + fmt(f.precio)}</span><span>${importe}</span></div>
+    </div>`;
   }).join('');
   return `
     <h2>VALE DE VENTA</h2>
     <div class="center">Bodega R-56 · Tomates de Invernadero</div>
-    <hr>
-    <div><b>Folio:</b> ${folioStr(folio)} &nbsp; <b>Fecha:</b> ${fechaHoyCDMX()}</div>
+    <div class="linea-punteada"></div>
+    <div><b>Folio:</b> ${folioStr(folio)}</div>
+    <div><b>Fecha:</b> ${fechaHoyCDMX()}</div>
     <div><b>Cliente:</b> ${cliente}</div>
     <div><b>Tipo:</b> ${tipo}</div>
-    <hr>
-    <table>
-      <thead><tr><th>Carro</th><th>Invern.</th><th>Tam.</th><th>Cajas</th><th>Precio</th><th>Total</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    <hr>
+    <div class="linea-punteada"></div>
+    ${rows}
+    <div class="linea-punteada"></div>
     <div class="tot">TOTAL: $${fmt(totalVale)}</div>
-    <div class="center" style="margin-top:10px;">___________________________<br>Firma / Sello</div>
+    <div class="center" style="margin-top:14px;">_____________________<br>Firma / Sello</div>
   `;
 }
 
@@ -998,58 +998,77 @@ document.getElementById('btn-imprimir').addEventListener('click', async () => {
   const editandoAhora = folioEditando;
   const boton = document.getElementById('btn-imprimir');
   boton.disabled = true;
-  boton.textContent = editandoAhora ? 'Guardando cambios...' : 'Guardando...';
+
+  // El folio a imprimir: si estamos editando, es el mismo de siempre (no
+  // cambia). Si es un vale nuevo, usamos el que ya trajimos por
+  // adelantado con cargarSiguienteFolio() al abrir el módulo — normalmente
+  // ya está listo, así que no hay que esperar red para saberlo. Solo en el
+  // caso raro de que aún no haya llegado lo pedimos aquí (rápido, de solo
+  // lectura) antes de imprimir.
+  let folioUsado = editandoAhora || proximoFolio;
+  if (!folioUsado) {
+    boton.textContent = 'Preparando…';
+    try {
+      const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=siguiente_folio&token=${encodeURIComponent(tokenActual)}`);
+      if (data.ok) folioUsado = data.folio;
+    } catch (err) { /* sin conexión — se imprime con folio pendiente y ya se corrige al sincronizar */ }
+  }
 
   const payload = { cliente: clienteRaw, filas: filasNuevas, fecha: fechaHoyCDMX() };
   if (editandoAhora) payload.folioEditar = editandoAhora;
+  else if (folioUsado) payload.folioSugerido = folioUsado;
 
+  // 1) Todo se refleja en pantalla y se manda a imprimir DE INMEDIATO, sin
+  // esperar a que Sheets confirme — el mismo truco que ya agilizó el
+  // Módulo 3 (Manifiesto): la fuente de verdad se sincroniza después, en
+  // segundo plano, pero quien está en caja no pierde ni un segundo.
+  ajustarDisponibleLocal(filasNuevas, -1);
+  renderManifiestoPanel();
+  document.getElementById('print-area').innerHTML = generarTicketHTML(folioUsado || '?????', cliente, tipo, filasNuevas, totalVale);
+  window.print();
+  mostrarToast(`Vale ${folioStr(folioUsado)} ${editandoAhora ? 'actualizado' : 'guardado'} e impreso — ${cliente} — $${fmt(totalVale)}`, 'ok');
+
+  // Si el folio impreso fue nuestra propia estimación, ya reservamos el
+  // siguiente en pantalla para el próximo vale (se corrige solo si hiciera
+  // falta cuando cargarSiguienteFolio() responda de verdad, abajo).
+  if (!editandoAhora && typeof folioUsado === 'number') {
+    proximoFolio = folioUsado + 1;
+    renderFolioChip();
+  }
+
+  folioEditando = null;
+  document.getElementById('editando-banner').hidden = true;
+  resetForm();
+  actualizarBotonImprimirTexto();
+  boton.disabled = false;
+
+  // 2) Ahora sí, en segundo plano, se guarda de verdad en Sheets (o se
+  // encola si no hay conexión, igual que siempre). Esto ya NO bloquea que
+  // se pueda capturar el siguiente vale de inmediato.
+  guardarValeEnSegundoPlano(payload, editandoAhora);
+});
+
+async function guardarValeEnSegundoPlano(payload, editandoAhora) {
   try {
-    let folioUsado = null;
-    let ok = false;
-    if (navigator.onLine) {
-      try {
-        const params = new URLSearchParams({ action: 'venta_guardar', token: tokenActual, cliente: clienteRaw, fecha: payload.fecha, filas: JSON.stringify(filasNuevas) });
-        if (editandoAhora) params.set('folioEditar', editandoAhora);
-        const data = await llamarJSONP(`${APPS_SCRIPT_URL}?${params.toString()}`);
-        if (data.ok) { folioUsado = data.folio; ok = true; }
-      } catch (err) { /* cae a la cola de pendientes abajo */ }
-    }
-    if (!ok) {
-      await encolar('venta_guardar', payload);
-      folioUsado = editandoAhora || 'PENDIENTE';
-      mostrarToast('Sin conexión — el vale se guardó en este dispositivo y se sincronizará solo cuando regrese la señal.', 'info');
-    } else {
-      mostrarToast(`Vale ${folioStr(folioUsado)} ${editandoAhora ? 'actualizado' : 'guardado'} e impreso — ${cliente} — $${fmt(totalVale)}`, 'ok');
-    }
-
-    // Se aplica el descuento de inventario aquí mismo, sin esperar a que
-    // Sheets confirme y sin volver a pedirle todo el catálogo — el mismo
-    // truco que ya agilizó el Módulo 3. El folio y el ticket ya se pueden
-    // mostrar/imprimir de inmediato.
-    ajustarDisponibleLocal(filasNuevas, -1);
-    renderManifiestoPanel();
-
-    document.getElementById('print-area').innerHTML = generarTicketHTML(folioUsado === 'PENDIENTE' ? '?????' : folioUsado, cliente, tipo, filasNuevas, totalVale);
-    window.print();
-
-    folioEditando = null;
-    document.getElementById('editando-banner').hidden = true;
-    resetForm();
-    actualizarBotonImprimirTexto();
-
-    // El catálogo real y el historial se sincronizan en segundo plano —
-    // esto ya NO bloquea que se pueda capturar el siguiente vale de
-    // inmediato (antes eran dos idas y vueltas más antes de soltar la UI).
+    if (!navigator.onLine) throw new Error('sin conexión');
+    const params = new URLSearchParams({ action: 'venta_guardar', token: tokenActual, cliente: payload.cliente, fecha: payload.fecha, filas: JSON.stringify(payload.filas) });
+    if (payload.folioEditar) params.set('folioEditar', payload.folioEditar);
+    if (payload.folioSugerido) params.set('folioSugerido', payload.folioSugerido);
+    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?${params.toString()}`);
+    if (!data.ok) throw new Error(data.error || 'error al guardar');
+  } catch (err) {
+    await encolar('venta_guardar', payload);
+    mostrarToast('El vale ya se imprimió — se está guardando en Sheets en segundo plano (o en cuanto regrese la señal).', 'info');
+  } finally {
+    // El catálogo real y el historial se refrescan al final, sin bloquear
+    // nada — ya sirvieron su propósito los ajustes optimistas de arriba.
     cargarDisponible();
     cargarVentasHoy();
     // Solo si fue un vale NUEVO se consumió un folio — al editar uno ya
     // guardado, el próximo folio que le toca al siguiente vale no cambia.
     if (!editandoAhora) cargarSiguienteFolio();
-  } finally {
-    boton.disabled = false;
-    actualizarBotonImprimirTexto();
   }
-});
+}
 
 function mostrarToast(msg, tipo) {
   const el = document.getElementById('toast');
@@ -1073,6 +1092,7 @@ async function sincronizar() {
         const p = item.payload;
         const params = new URLSearchParams({ action: 'venta_guardar', token: tokenActual, cliente: p.cliente, fecha: p.fecha, filas: JSON.stringify(p.filas) });
         if (p.folioEditar) params.set('folioEditar', p.folioEditar);
+        if (p.folioSugerido) params.set('folioSugerido', p.folioSugerido);
         const data = await llamarJSONP(`${APPS_SCRIPT_URL}?${params.toString()}`);
         if (!data.ok) throw new Error(data.error || 'error');
         await borrarPendiente(item.id);

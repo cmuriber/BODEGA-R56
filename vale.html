@@ -801,20 +801,30 @@
   #modal-aviso .modal-titulo { justify-content: center; }
   #modal-msg { font-size: 14px; color: var(--text-dim); margin-bottom: 16px; }
 
-  /* ---------- Ticket de impresión ---------- */
+  /* ---------- Ticket de impresión (rollo térmico de 80mm) ----------
+     El ancho útil real de un rollo de 80mm suele ser ~72mm (el resto es
+     margen mecánico del cabezal). @page fija el tamaño de página al del
+     rollo para que la impresora térmica no intente centrar/recortar un
+     ticket pensado para carta; el contenido va en 72mm con un poco de
+     padding lateral. */
   #print-area { display: none; }
+  @page { size: 80mm auto; margin: 0; }
   @media print {
     body * { visibility: hidden; }
     #print-area, #print-area * { visibility: visible; }
     #print-area {
-      display: block; position: absolute; left: 0; top: 0; width: 100%;
-      font-family: 'Inter', sans-serif; color: #000; font-size: 12px;
+      display: block; position: absolute; left: 0; top: 0;
+      width: 72mm; padding: 2mm 4mm 6mm;
+      font-family: 'Inter', sans-serif; color: #000; font-size: 11.5px; line-height: 1.4;
     }
-    #print-area h2 { font-family: 'Barlow Condensed', sans-serif; text-align: center; margin: 0 0 4px; }
+    #print-area h2 { font-family: 'Barlow Condensed', sans-serif; text-align: center; margin: 0 0 2px; font-size: 17px; letter-spacing: 0.5px; }
     #print-area .center { text-align: center; }
-    #print-area table { width: 100%; border-collapse: collapse; margin-top: 6px; }
-    #print-area th, #print-area td { border-bottom: 1px solid #ccc; padding: 3px 4px; font-size: 11px; text-align: left; }
-    #print-area .tot { font-weight: 700; font-size: 15px; margin-top: 8px; text-align: right; }
+    #print-area .linea-punteada { border-top: 1px dashed #000; margin: 6px 0; }
+    #print-area .reng { margin: 5px 0; }
+    #print-area .reng-top { font-weight: 600; }
+    #print-area .reng-sub { font-size: 10.5px; color: #333; }
+    #print-area .reng-bottom { display: flex; justify-content: space-between; margin-top: 1px; }
+    #print-area .tot { font-weight: 700; font-size: 15px; margin-top: 6px; text-align: right; }
   }
 
   /* ---------- Layout de 2 columnas en pantallas anchas (mostrador/PC) ----------
