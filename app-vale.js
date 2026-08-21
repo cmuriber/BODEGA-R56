@@ -885,10 +885,15 @@ function generarTicketHTML(folio, cliente, tipo, filas, totalVale) {
     const label = (CAMPOS_TAMANO.find(t => t.param === f.tamano) || {}).label || f.tamano;
     const detalle = [f.invernadero, f.letra, f.semilla].filter(Boolean).join(' · ');
     const importe = f.esMerma ? '—' : `$${fmt(f.cajas * f.precio)}`;
+    // Inicial del agricultor junto al número de carro: cuando dos
+    // agricultores comparten número (206 de Jesse, 206 de Ramón), quien
+    // entrega la mercancía (José, Fernando, Pablo) necesita ver de
+    // inmediato de cuál de los dos surtir — "206 J" vs "206 R".
+    const inicial = (f.agricultor || '').trim().charAt(0).toUpperCase();
     return `
     <div class="reng">
-      <div class="reng-top">Carro ${f.carro} · ${label}${f.esMerma ? ' (MERMA)' : ''}</div>
-      ${detalle ? `<div class="reng-sub">${detalle}</div>` : ''}
+      <div class="reng-carro">Carro ${f.carro}${inicial ? ` <span class="reng-ini">${inicial}</span>` : ''}</div>
+      <div class="reng-detalle">${label}${f.esMerma ? ' (MERMA)' : ''}${detalle ? ' · ' + detalle : ''}</div>
       <div class="reng-bottom"><span>${f.cajas} caja${f.cajas === 1 ? '' : 's'}${f.esMerma ? '' : ' × $' + fmt(f.precio)}</span><span>${importe}</span></div>
     </div>`;
   }).join('');
@@ -916,7 +921,15 @@ function resetForm() {
 
 function actualizarBotonImprimirTexto() {
   const boton = document.getElementById('btn-imprimir');
-  boton.textContent = folioEditando ? `💾 Guardar cambios (vale ${folioStr(folioEditando)})` : '🖨 Imprimir vale';
+  const botonGuardarSolo = document.getElementById('btn-guardar-sin-imprimir');
+  if (folioEditando) {
+    boton.textContent = `🖨 Reimprimir vale ${folioStr(folioEditando)}`;
+    botonGuardarSolo.hidden = false;
+    botonGuardarSolo.textContent = '💾 Guardar cambios (sin reimprimir)';
+  } else {
+    boton.textContent = '🖨 Imprimir vale';
+    botonGuardarSolo.hidden = true;
+  }
 }
 
 // Junta las filas planas de un vale guardado (una por tamaño) de vuelta en
@@ -984,10 +997,17 @@ document.getElementById('btn-cancelar-edicion').addEventListener('click', async 
   await cargarDisponible(); // vuelve a traer del servidor el disponible real, sin el ajuste local temporal de arriba
 });
 
-document.getElementById('btn-imprimir').addEventListener('click', async () => {
+// Un vale nuevo siempre se guarda Y se imprime junto (así se ha manejado
+// siempre). Uno que se está EDITANDO tiene dos botones separados: "Guardar
+// cambios" (corrige el registro sin generar una copia nueva — para cuando
+// el ajuste es solo interno, ej. un precio mal capturado) y "Reimprimir"
+// (guarda igual, pero además entrega una copia física nueva — para cuando
+// la corrección sí cambia lo que se le debe entregar al cliente). Ambos
+// botones llaman a esta misma función, solo cambia si imprimen o no.
+async function procesarGuardado(botonActivo, { imprimir }) {
   const validas = partidasValidas();
   if (validas.length === 0) {
-    mostrarToast('Completa al menos una partida antes de guardar e imprimir', 'warn');
+    mostrarToast('Completa al menos una partida antes de guardar', 'warn');
     return;
   }
   const filasNuevas = filasPorTamano(validas);
@@ -996,18 +1016,20 @@ document.getElementById('btn-imprimir').addEventListener('click', async () => {
   const tipo = clienteRaw ? 'CRÉDITO' : 'EFECTIVO / PÚBLICO GENERAL';
   const totalVale = filasNuevas.reduce((a, f) => a + (f.esMerma ? 0 : f.cajas * f.precio), 0);
   const editandoAhora = folioEditando;
-  const boton = document.getElementById('btn-imprimir');
-  boton.disabled = true;
+  const btnImprimir = document.getElementById('btn-imprimir');
+  const btnGuardarSolo = document.getElementById('btn-guardar-sin-imprimir');
+  btnImprimir.disabled = true;
+  btnGuardarSolo.disabled = true;
 
-  // El folio a imprimir: si estamos editando, es el mismo de siempre (no
+  // El folio a usar: si estamos editando, es el mismo de siempre (no
   // cambia). Si es un vale nuevo, usamos el que ya trajimos por
   // adelantado con cargarSiguienteFolio() al abrir el módulo — normalmente
   // ya está listo, así que no hay que esperar red para saberlo. Solo en el
   // caso raro de que aún no haya llegado lo pedimos aquí (rápido, de solo
-  // lectura) antes de imprimir.
+  // lectura) antes de continuar.
   let folioUsado = editandoAhora || proximoFolio;
   if (!folioUsado) {
-    boton.textContent = 'Preparando…';
+    botonActivo.textContent = 'Preparando…';
     try {
       const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=siguiente_folio&token=${encodeURIComponent(tokenActual)}`);
       if (data.ok) folioUsado = data.folio;
@@ -1018,17 +1040,19 @@ document.getElementById('btn-imprimir').addEventListener('click', async () => {
   if (editandoAhora) payload.folioEditar = editandoAhora;
   else if (folioUsado) payload.folioSugerido = folioUsado;
 
-  // 1) Todo se refleja en pantalla y se manda a imprimir DE INMEDIATO, sin
-  // esperar a que Sheets confirme — el mismo truco que ya agilizó el
+  // 1) Todo se refleja en pantalla (y se imprime, si toca) DE INMEDIATO,
+  // sin esperar a que Sheets confirme — el mismo truco que ya agilizó el
   // Módulo 3 (Manifiesto): la fuente de verdad se sincroniza después, en
   // segundo plano, pero quien está en caja no pierde ni un segundo.
   ajustarDisponibleLocal(filasNuevas, -1);
   renderManifiestoPanel();
-  document.getElementById('print-area').innerHTML = generarTicketHTML(folioUsado || '?????', cliente, tipo, filasNuevas, totalVale);
-  window.print();
-  mostrarToast(`Vale ${folioStr(folioUsado)} ${editandoAhora ? 'actualizado' : 'guardado'} e impreso — ${cliente} — $${fmt(totalVale)}`, 'ok');
+  if (imprimir) {
+    document.getElementById('print-area').innerHTML = generarTicketHTML(folioUsado || '?????', cliente, tipo, filasNuevas, totalVale);
+    window.print();
+  }
+  mostrarToast(`Vale ${folioStr(folioUsado)} ${editandoAhora ? 'actualizado' : 'guardado'}${imprimir ? ' e impreso' : ''} — ${cliente} — $${fmt(totalVale)}`, 'ok');
 
-  // Si el folio impreso fue nuestra propia estimación, ya reservamos el
+  // Si el folio usado fue nuestra propia estimación, ya reservamos el
   // siguiente en pantalla para el próximo vale (se corrige solo si hiciera
   // falta cuando cargarSiguienteFolio() responda de verdad, abajo).
   if (!editandoAhora && typeof folioUsado === 'number') {
@@ -1040,12 +1064,20 @@ document.getElementById('btn-imprimir').addEventListener('click', async () => {
   document.getElementById('editando-banner').hidden = true;
   resetForm();
   actualizarBotonImprimirTexto();
-  boton.disabled = false;
+  btnImprimir.disabled = false;
+  btnGuardarSolo.disabled = false;
 
   // 2) Ahora sí, en segundo plano, se guarda de verdad en Sheets (o se
   // encola si no hay conexión, igual que siempre). Esto ya NO bloquea que
   // se pueda capturar el siguiente vale de inmediato.
   guardarValeEnSegundoPlano(payload, editandoAhora);
+}
+
+document.getElementById('btn-imprimir').addEventListener('click', () => {
+  procesarGuardado(document.getElementById('btn-imprimir'), { imprimir: true });
+});
+document.getElementById('btn-guardar-sin-imprimir').addEventListener('click', () => {
+  procesarGuardado(document.getElementById('btn-guardar-sin-imprimir'), { imprimir: false });
 });
 
 async function guardarValeEnSegundoPlano(payload, editandoAhora) {
