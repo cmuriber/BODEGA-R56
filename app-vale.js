@@ -501,7 +501,7 @@ function renderPartidaCard(p, idx) {
           <label>Agricultor</label>
           <select data-campo="agricultor" data-id="${p.id}" ${!p.carroNumero ? 'disabled' : ''}>
             <option value="">${!p.carroNumero ? 'Elige un carro primero' : (opcionesAgricultor.length > 1 ? 'Seleccionar…' : '')}</option>
-            ${opcionesAgricultor.map(c => `<option value="${c.id}" ${p.carroId === c.id ? 'selected' : ''}>${c.agricultor}${c.esDeHoy ? '' : ' · no es de hoy'}</option>`).join('')}
+            ${opcionesAgricultor.map(c => `<option value="${c.id}" ${p.carroId === c.id ? 'selected' : ''}>${c.agricultor}</option>`).join('')}
           </select>
         </div>
         <div>
