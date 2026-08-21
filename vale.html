@@ -682,18 +682,19 @@
   }
   .agotado-aviso.show { display: block; }
 
+  .acciones-partidas {
+    margin: 4px 20px 0; display: flex; flex-direction: column; gap: 10px;
+  }
   .agregar-partida-btn {
-    margin: 4px 20px 0; padding: 12px; border: 1px dashed var(--card-border); border-radius: 12px;
+    margin: 0; padding: 12px; border: 1px dashed var(--card-border); border-radius: 12px;
     background: transparent; color: var(--tallo); font-weight: 700; font-size: 13px; cursor: pointer; text-align: center;
   }
   .agregar-partida-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  .total-vale-bar { margin: 16px 20px 0; display: flex; flex-direction: column; gap: 4px; }
+  .total-vale-bar { margin: 16px 20px calc(24px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 4px; }
   .total-vale-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); font-weight: 600; }
   #total-vale { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px; color: var(--tallo); }
   .total-vale-hint { font-size: 11px; color: var(--text-dim); }
-  .imprimir-wrap { margin: 12px 20px calc(24px + env(safe-area-inset-bottom)); }
-  .col-derecha .imprimir-wrap { margin-bottom: 20px; }
 
   /* ---------- Manifiesto (solo consulta) ---------- */
   .manifiesto-panel { margin: 16px 20px 0; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow: hidden; }
@@ -818,8 +819,18 @@
     .partidas-header { margin: 12px 20px 6px; }
     #partidas-container { gap: 8px; }
     .partida-body { padding: 8px 12px; }
-    .total-vale-bar { margin-top: 12px; }
-    .imprimir-wrap { margin-top: 10px; }
+    .total-vale-bar { margin-top: 10px; }
+
+    /* "Imprimir vale" chico junto a "+ Agregar partida" en vez del botón
+       gigante de ancho completo hasta abajo — libera todo ese espacio
+       vertical que antes se lo comía un solo botón. */
+    .acciones-partidas {
+      flex-direction: row; align-items: center; justify-content: space-between; margin-top: 6px;
+    }
+    .acciones-partidas .agregar-partida-btn { flex: 0 1 auto; }
+    .acciones-partidas #btn-imprimir {
+      width: auto; flex: 0 0 auto; padding: 9px 18px; font-size: 12.5px; border-radius: 10px; white-space: nowrap;
+    }
   }
 </style>
 
@@ -898,15 +909,15 @@
         </div>
         <div id="partidas-container"></div>
 
-        <button class="agregar-partida-btn" id="btn-agregar-partida" type="button">+ Agregar partida (otro carro)</button>
+        <div class="acciones-partidas">
+          <button class="agregar-partida-btn" id="btn-agregar-partida" type="button">+ Agregar partida (otro carro)</button>
+          <button class="btn-primario" id="btn-imprimir" type="button">🖨 Imprimir vale</button>
+        </div>
 
         <div class="total-vale-bar">
           <div class="total-vale-label">Total del vale</div>
           <div id="total-vale">$0</div>
           <div class="total-vale-hint">Al imprimir, el vale se guarda y el formulario se limpia automáticamente.</div>
-        </div>
-        <div class="imprimir-wrap">
-          <button class="btn-primario" id="btn-imprimir" type="button">🖨 Imprimir vale</button>
         </div>
 
       </div>
