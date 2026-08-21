@@ -167,7 +167,10 @@
   }
   .titulo-modulo { font-size: 18px; font-weight: 600; margin-top: 4px; }
 
-  .top-acciones { display: flex; align-items: center; gap: 10px; }
+  /* El nombre de usuario va en su propia fila, debajo del nav — así no se
+     confunde como si fuera un botón más del menú. */
+  .top-acciones { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .top-acciones-fila { display: flex; align-items: center; gap: 10px; }
   .top-acciones a, .top-acciones button {
     background: none;
     border: none;
@@ -205,11 +208,12 @@
   /* --- Quién tiene la sesión abierta --- */
   .usuario-chip {
     font-family: 'Inter', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 500;
     color: var(--text-dim);
     white-space: nowrap;
   }
+  .usuario-chip::before { content: '👤 '; }
 
   #sello-chip {
     font-family: 'Barlow Condensed', sans-serif;
@@ -623,14 +627,16 @@
         <div class="titulo-modulo">Manifiesto de Carro</div>
       </div>
       <div class="top-acciones">
-        <nav class="modulos-nav">
-          <a class="modulo-link" href="./index.html">Dashboard</a>
-          <span class="modulo-link activo">Manifiesto</span>
-          <a class="modulo-link" href="./vale.html">Vale</a>
-        </nav>
+        <div class="top-acciones-fila">
+          <nav class="modulos-nav">
+            <a class="modulo-link" href="./index.html">Dashboard</a>
+            <span class="modulo-link activo">Manifiesto</span>
+            <a class="modulo-link" href="./vale.html">Vale</a>
+          </nav>
+          <span id="sello-chip">AL DÍA</span>
+          <button id="btn-salir" type="button">Salir</button>
+        </div>
         <span class="usuario-chip" id="usuario-chip"></span>
-        <span id="sello-chip">AL DÍA</span>
-        <button id="btn-salir" type="button">Salir</button>
       </div>
     </div>
 

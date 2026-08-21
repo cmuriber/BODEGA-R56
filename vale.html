@@ -167,7 +167,10 @@
   }
   .titulo-modulo { font-size: 18px; font-weight: 600; margin-top: 4px; }
 
-  .top-acciones { display: flex; align-items: center; gap: 10px; }
+  /* El nombre de usuario va en su propia fila, debajo del nav — así no se
+     confunde como si fuera un botón más del menú. */
+  .top-acciones { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .top-acciones-fila { display: flex; align-items: center; gap: 10px; }
   .top-acciones a, .top-acciones button {
     background: none;
     border: none;
@@ -205,11 +208,12 @@
   /* --- Quién tiene la sesión abierta --- */
   .usuario-chip {
     font-family: 'Inter', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 500;
     color: var(--text-dim);
     white-space: nowrap;
   }
+  .usuario-chip::before { content: '👤 '; }
 
   #sello-chip {
     font-family: 'Barlow Condensed', sans-serif;
@@ -905,14 +909,16 @@
         <div class="titulo-modulo">Nueva Venta / Vale</div>
       </div>
       <div class="top-acciones">
-        <nav class="modulos-nav">
-          <a class="modulo-link" href="./index.html">Dashboard</a>
-          <a class="modulo-link" href="./manifiesto.html">Manifiesto</a>
-          <span class="modulo-link activo">Vale</span>
-        </nav>
+        <div class="top-acciones-fila">
+          <nav class="modulos-nav">
+            <a class="modulo-link" href="./index.html">Dashboard</a>
+            <a class="modulo-link" href="./manifiesto.html">Manifiesto</a>
+            <span class="modulo-link activo">Vale</span>
+          </nav>
+          <span class="admin-chip" id="admin-chip" hidden>Admin</span>
+          <button id="btn-salir" type="button">Salir</button>
+        </div>
         <span class="usuario-chip" id="usuario-chip"></span>
-        <span class="admin-chip" id="admin-chip" hidden>Admin</span>
-        <button id="btn-salir" type="button">Salir</button>
       </div>
     </div>
 
@@ -927,7 +933,7 @@
             <div class="fecha-chip" id="fecha-chip">—</div>
           </div>
           <div>
-            <label class="campo-label-inline">Próximo folio</label>
+            <label class="campo-label-inline">Folio</label>
             <div class="folio-chip" id="folio-chip">—</div>
           </div>
         </div>

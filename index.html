@@ -90,14 +90,18 @@
   /* --- Quién tiene la sesión abierta --- */
   .usuario-chip {
     font-family: 'Inter', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 500;
     color: var(--text-dim);
     white-space: nowrap;
   }
+  .usuario-chip::before { content: '👤 '; }
 
-  /* --- Sello: estado de sincronización, guiño al vale sellado del negocio --- */
-  .top-derecha { display: flex; align-items: center; gap: 8px; }
+  /* --- Sello: estado de sincronización, guiño al vale sellado del negocio ---
+     El nombre de usuario va en su propia fila, debajo del nav — así no se
+     confunde como si fuera un botón más del menú. */
+  .top-derecha { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .top-derecha-fila { display: flex; align-items: center; gap: 8px; }
   .sello-wrap { display: flex; align-items: center; }
   #sello {
     font-family: 'Barlow Condensed', sans-serif;
@@ -422,16 +426,18 @@
       <div id="fecha-label">—</div>
     </div>
     <div class="top-derecha">
-      <nav class="modulos-nav">
-        <span class="modulo-link activo">Dashboard</span>
-        <a class="modulo-link" href="./manifiesto.html">Manifiesto</a>
-        <a class="modulo-link" href="./vale.html">Vale</a>
-      </nav>
-      <span class="usuario-chip" id="usuario-chip"></span>
-      <div class="sello-wrap">
-        <button id="refrescar" aria-label="Actualizar">⟳</button>
-        <div id="sello">AL DÍA</div>
+      <div class="top-derecha-fila">
+        <nav class="modulos-nav">
+          <span class="modulo-link activo">Dashboard</span>
+          <a class="modulo-link" href="./manifiesto.html">Manifiesto</a>
+          <a class="modulo-link" href="./vale.html">Vale</a>
+        </nav>
+        <div class="sello-wrap">
+          <button id="refrescar" aria-label="Actualizar">⟳</button>
+          <div id="sello">AL DÍA</div>
+        </div>
       </div>
+      <span class="usuario-chip" id="usuario-chip"></span>
     </div>
   </div>
 

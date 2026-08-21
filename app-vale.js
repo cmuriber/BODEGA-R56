@@ -353,16 +353,23 @@ function getCarro(carroId) { return carrosDisponibles.find(c => c.id === carroId
 // agricultores), y ese número decide qué agricultores ofrecer en el
 // siguiente campo. Solo cuando también se elige el agricultor queda
 // resuelto el manifiesto real (p.carroId).
+// Siempre se compara como texto (String(...)) — la hoja de Google Sheets a
+// veces guarda el número de carro como número real (206) y otras veces
+// como texto ("206") según cómo se haya capturado, y el <select> del HTML
+// siempre entrega su value como texto. Comparar 206 === "206" en
+// JavaScript da false, así que sin este String(...) la lista de
+// agricultores se quedaba vacía en cuanto el carro venía como número.
 function carrosUnicosPorNumero() {
   const vistos = new Set();
   const resultado = [];
   carrosDisponibles.forEach(c => {
-    if (!vistos.has(c.carro)) { vistos.add(c.carro); resultado.push(c.carro); }
+    const num = String(c.carro);
+    if (!vistos.has(num)) { vistos.add(num); resultado.push(num); }
   });
   return resultado;
 }
 function carrosConNumero(numero) {
-  return carrosDisponibles.filter(c => c.carro === numero);
+  return carrosDisponibles.filter(c => String(c.carro) === String(numero));
 }
 
 // El identificador real y único de cada nave es su NaveID (igual que en el
