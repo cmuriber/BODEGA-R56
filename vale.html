@@ -560,8 +560,21 @@
   }
   .admin-chip[hidden] { display: none; }
 
-  .encabezado-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 20px 0; }
-  .historial-fila-wrap { display: flex; justify-content: flex-end; margin: 8px 20px 0; }
+  .encabezado-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 20px 0; }
+  .historial-fila-wrap { display: flex; justify-content: flex-end; margin: 6px 20px 0; }
+
+  .editando-banner {
+    margin: 10px 20px 0; padding: 9px 12px; border-radius: 10px;
+    background: rgba(183,121,31,0.12); border: 1px solid var(--ambar);
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    font-size: 12.5px; color: var(--dorado-dim); font-weight: 600;
+  }
+  .editando-banner[hidden] { display: none; }
+  .editando-banner button {
+    border: 1px solid var(--ambar); background: transparent; color: var(--dorado-dim);
+    border-radius: 20px; padding: 5px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer;
+    white-space: nowrap; font-family: 'Inter', sans-serif;
+  }
   .folio-chip {
     background: var(--card); border: 1px solid var(--card-border); border-radius: 10px;
     padding: 9px 11px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 18px;
@@ -590,8 +603,8 @@
   #cliente-suggerencias .opt { padding: 10px 12px; font-size: 14px; cursor: pointer; }
   #cliente-suggerencias .opt:active { background: var(--bg); }
 
-  .partidas-header { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 20px 8px; }
-  #partidas-container { margin: 0 20px; display: flex; flex-direction: column; gap: 12px; }
+  .partidas-header { display: flex; justify-content: space-between; align-items: baseline; margin: 16px 20px 8px; }
+  #partidas-container { margin: 0 20px; display: flex; flex-direction: column; gap: 10px; }
 
   .partida {
     background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow: hidden;
@@ -606,7 +619,7 @@
   .partida-quitar { border: none; background: transparent; color: var(--tomate); font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 4px; }
   .partida-quitar:disabled { opacity: 0.35; }
 
-  .partida-body { padding: 12px; }
+  .partida-body { padding: 10px 12px; }
   .row-campos {
     display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
     grid-template-areas: "carro agri" "inv inv" "cajas precio" "total total";
@@ -675,14 +688,16 @@
   }
   .agregar-partida-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  .total-vale-bar { margin: 20px 20px 0; display: flex; flex-direction: column; gap: 4px; }
+  .total-vale-bar { margin: 16px 20px 0; display: flex; flex-direction: column; gap: 4px; }
   .total-vale-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); font-weight: 600; }
   #total-vale { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px; color: var(--tallo); }
   .total-vale-hint { font-size: 11px; color: var(--text-dim); }
-  .imprimir-wrap { margin: 14px 20px calc(24px + env(safe-area-inset-bottom)); }
+  .imprimir-wrap { margin: 12px 20px calc(24px + env(safe-area-inset-bottom)); }
+  .col-derecha .imprimir-wrap { margin-bottom: 20px; }
 
   /* ---------- Manifiesto (solo consulta) ---------- */
-  .manifiesto-panel { margin: 26px 20px 0; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow: hidden; }
+  .manifiesto-panel { margin: 16px 20px 0; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow: hidden; }
+  .col-derecha .manifiesto-panel { margin-top: 14px; }
   .manifiesto-nota {
     margin: 10px 12px 0; padding: 8px 10px; border-radius: 9px; font-size: 11.5px;
     background: rgba(183,121,31,0.1); border: 1px solid var(--ambar); color: var(--dorado-dim);
@@ -728,6 +743,8 @@
     display: grid; grid-template-columns: 58px 1fr 70px 70px; gap: 8px; align-items: center;
     padding: 9px 4px; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
   }
+  .historial-fila[data-folio] { cursor: pointer; }
+  .historial-fila[data-folio]:active { background: var(--bg); }
   .historial-fila.head { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); font-weight: 700; border-bottom: 1px solid var(--card-border); }
   .historial-fila .monto { text-align: right; font-weight: 700; }
   .tipo-pill { font-size: 10.5px; font-weight: 700; padding: 3px 7px; border-radius: 999px; background: rgba(31,111,67,0.12); color: var(--tallo); text-align: center; }
@@ -754,6 +771,55 @@
     #print-area table { width: 100%; border-collapse: collapse; margin-top: 6px; }
     #print-area th, #print-area td { border-bottom: 1px solid #ccc; padding: 3px 4px; font-size: 11px; text-align: left; }
     #print-area .tot { font-weight: 700; font-size: 15px; margin-top: 8px; text-align: right; }
+  }
+
+  /* ---------- Layout de 2 columnas en pantallas anchas (mostrador/PC) ----------
+     En celular (por default) todo va apilado en una sola columna, en el
+     mismo orden de siempre. A partir de 860px el formulario de venta pasa a
+     la izquierda, más compacto, y el panel de manifiesto (solo consulta) se
+     va a la derecha, fijo mientras se hace scroll del formulario.
+     Este bloque va AL FINAL del <style> a propósito: varias de sus reglas
+     (.row-campos, .checks-fila, .partida-body, etc.) tienen que GANARLE a
+     las reglas base de arriba, y con la misma especificidad (una sola
+     clase) manda la que aparece después en el archivo — sin importar que
+     esté dentro de un @media. Si este bloque se mueve más arriba del
+     archivo, estas reglas dejan de aplicarse aunque el @media sí esté
+     activo. */
+  @media (min-width: 860px) {
+    body { max-width: 1100px; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 22px;
+      align-items: start;
+    }
+    .col-derecha { position: sticky; top: 16px; }
+
+    /* Partida en una sola fila horizontal (Carro · Agricultor · Invernadero ·
+       Cajas · Precio · Total) en vez de apilada en 4 renglones — es lo que
+       más alto le quita a cada partida, para poder llenar el vale completo
+       sin tener que hacer scroll hacia abajo. */
+    .row-campos {
+      grid-template-columns: 92px 1.3fr 1.6fr 78px 90px 108px;
+      grid-template-areas: "carro agri inv cajas precio total";
+      gap: 10px;
+    }
+    .row-campos label { margin-bottom: 3px; }
+
+    /* Color y Tamaño lado a lado en vez de uno encima del otro. */
+    .checks-fila { flex-direction: row; gap: 22px; margin-top: 10px; }
+    .checks-grupo:first-child { flex: 0 0 190px; }
+    .checks-grupo:last-child { flex: 1; }
+
+    /* Recorta un poco más los espacios verticales entre secciones para que
+       todo el vale quepa de un vistazo. */
+    .encabezado-fila { margin-top: 10px; }
+    .cliente-campo { margin-top: 10px; }
+    .partidas-header { margin: 12px 20px 6px; }
+    #partidas-container { gap: 8px; }
+    .partida-body { padding: 8px 12px; }
+    .total-vale-bar { margin-top: 12px; }
+    .imprimir-wrap { margin-top: 10px; }
   }
 </style>
 
@@ -797,51 +863,65 @@
 
     <div id="error-box" hidden></div>
 
-    <div class="encabezado-fila">
-      <div>
-        <label class="campo-label-inline">Fecha</label>
-        <div class="fecha-chip" id="fecha-chip">—</div>
+    <div class="layout">
+      <div class="col-izquierda">
+
+        <div class="encabezado-fila">
+          <div>
+            <label class="campo-label-inline">Fecha</label>
+            <div class="fecha-chip" id="fecha-chip">—</div>
+          </div>
+          <div>
+            <label class="campo-label-inline">&nbsp;</label>
+            <div class="folio-chip">Folio al guardar</div>
+          </div>
+        </div>
+
+        <div class="historial-fila-wrap">
+          <button id="btn-historial" type="button">🧾 Vales guardados</button>
+        </div>
+
+        <div class="editando-banner" id="editando-banner" hidden>
+          <span id="editando-texto"></span>
+          <button type="button" id="btn-cancelar-edicion">Cancelar edición</button>
+        </div>
+
+        <div class="cliente-campo">
+          <label>Cliente <span class="hint">(vacío = efectivo/público general · con nombre = crédito)</span></label>
+          <input type="text" id="cliente-input" placeholder="Escribe para buscar o captura un nombre nuevo…" autocomplete="off">
+          <div id="cliente-suggerencias"></div>
+        </div>
+
+        <div class="partidas-header">
+          <div class="seccion-titulo">Partidas</div>
+          <div id="partidas-count" class="carro-fecha">1 de 5</div>
+        </div>
+        <div id="partidas-container"></div>
+
+        <button class="agregar-partida-btn" id="btn-agregar-partida" type="button">+ Agregar partida (otro carro)</button>
+
+        <div class="total-vale-bar">
+          <div class="total-vale-label">Total del vale</div>
+          <div id="total-vale">$0</div>
+          <div class="total-vale-hint">Al imprimir, el vale se guarda y el formulario se limpia automáticamente.</div>
+        </div>
+        <div class="imprimir-wrap">
+          <button class="btn-primario" id="btn-imprimir" type="button">🖨 Imprimir vale</button>
+        </div>
+
       </div>
-      <div>
-        <label class="campo-label-inline">&nbsp;</label>
-        <div class="folio-chip">Folio al guardar</div>
+      <div class="col-derecha">
+
+        <div class="manifiesto-panel">
+          <div class="seccion" style="margin:12px 12px 0;">
+            <div class="seccion-titulo" style="font-size:15px;">Manifiesto (consulta)</div>
+          </div>
+          <div class="manifiesto-nota">Solo consulta visual — no llena el formulario de venta.</div>
+          <div class="manifiesto-tabs" id="manifiesto-tabs"></div>
+          <div class="manifiesto-body" id="manifiesto-body"></div>
+        </div>
+
       </div>
-    </div>
-
-    <div class="historial-fila-wrap">
-      <button id="btn-historial" type="button">🧾 Vales guardados</button>
-    </div>
-
-    <div class="cliente-campo">
-      <label>Cliente <span class="hint">(vacío = efectivo/público general · con nombre = crédito)</span></label>
-      <input type="text" id="cliente-input" placeholder="Escribe para buscar o captura un nombre nuevo…" autocomplete="off">
-      <div id="cliente-suggerencias"></div>
-    </div>
-
-    <div class="partidas-header">
-      <div class="seccion-titulo">Partidas</div>
-      <div id="partidas-count" class="carro-fecha">1 de 5</div>
-    </div>
-    <div id="partidas-container"></div>
-
-    <button class="agregar-partida-btn" id="btn-agregar-partida" type="button">+ Agregar partida (otro carro)</button>
-
-    <div class="total-vale-bar">
-      <div class="total-vale-label">Total del vale</div>
-      <div id="total-vale">$0</div>
-      <div class="total-vale-hint">Al imprimir, el vale se guarda y el formulario se limpia automáticamente.</div>
-    </div>
-    <div class="imprimir-wrap">
-      <button class="btn-primario" id="btn-imprimir" type="button">🖨 Imprimir vale</button>
-    </div>
-
-    <div class="manifiesto-panel">
-      <div class="seccion" style="margin:12px 12px 0;">
-        <div class="seccion-titulo" style="font-size:15px;">Manifiesto (consulta)</div>
-      </div>
-      <div class="manifiesto-nota">Solo consulta visual — no llena el formulario de venta.</div>
-      <div class="manifiesto-tabs" id="manifiesto-tabs"></div>
-      <div class="manifiesto-body" id="manifiesto-body"></div>
     </div>
 
     <div style="height:20px;"></div>
