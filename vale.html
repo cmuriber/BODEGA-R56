@@ -606,11 +606,21 @@
     font-size: 12.5px; color: var(--dorado-dim); font-weight: 600;
   }
   .editando-banner[hidden] { display: none; }
+  .editando-banner-botones { display: flex; gap: 8px; flex-wrap: wrap; }
   .editando-banner button {
     border: 1px solid var(--ambar); background: transparent; color: var(--dorado-dim);
     border-radius: 20px; padding: 5px 10px; font-size: 11.5px; font-weight: 700; cursor: pointer;
     white-space: nowrap; font-family: 'Inter', sans-serif;
   }
+  /* "Cancelar vale" es destructivo e irreversible (borra el registro de
+     Sheets por completo) — va en rojo, claramente distinto del botón
+     ámbar de "Cancelar edición" (que solo cierra el formulario sin borrar
+     nada). Solo lo ve un admin — ver iniciarSesionConToken en app-vale.js. */
+  #btn-cancelar-vale {
+    border-color: var(--tomate); color: var(--tomate-dim);
+  }
+  #btn-cancelar-vale:hover { background: rgba(192,57,43,0.08); }
+  #btn-cancelar-vale[hidden] { display: none; }
   /* Marca de agua del próximo folio — es solo de referencia (el número
      real y definitivo lo asigna el servidor al guardar), por eso va en
      tono apagado en vez de como un dato ya confirmado. */
@@ -1002,7 +1012,10 @@
 
         <div class="editando-banner" id="editando-banner" hidden>
           <span id="editando-texto"></span>
-          <button type="button" id="btn-cancelar-edicion">Cancelar edición</button>
+          <div class="editando-banner-botones">
+            <button type="button" id="btn-cancelar-vale" class="btn-cancelar-vale" hidden>🗑 Cancelar vale</button>
+            <button type="button" id="btn-cancelar-edicion">Cancelar edición</button>
+          </div>
         </div>
 
         <div class="cliente-campo">

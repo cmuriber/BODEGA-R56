@@ -170,7 +170,7 @@ function generarIdTemporal() {
 // ---------- JSONP (idéntico a los otros módulos) ----------
 
 let jsonpContador = 0;
-function llamarJSONP(url, timeoutMs = 10000) {
+function llamarJSONP(url, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
     jsonpContador += 1;
     const callbackName = 'r56cb_' + Date.now() + '_' + jsonpContador;
@@ -983,11 +983,61 @@ async function cargarValeParaEditar(folio) {
     const banner = document.getElementById('editando-banner');
     banner.hidden = false;
     document.getElementById('editando-texto').textContent = `Editando vale ${folioStr(folio)} — al guardar se actualiza, no se crea uno nuevo.`;
+    // "Cancelar vale" borra el registro por completo — solo un admin lo ve.
+    document.getElementById('btn-cancelar-vale').hidden = usuarioRol !== 'admin';
     banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
   } catch (err) {
     mostrarToast('Sin conexión — no se pudo cargar ese vale para editar.', 'warn');
   }
 }
+
+// El cliente ya no se llevó la mercancía y el vale no debe contar para
+// nada — a diferencia de guardar/imprimir (que se hace optimista, local
+// primero), cancelar SÍ espera la confirmación real del servidor antes de
+// avisar que ya quedó, porque es irreversible y no hay forma de "reconciliar"
+// después si de verdad no se pudo borrar.
+document.getElementById('btn-cancelar-vale').addEventListener('click', async () => {
+  const folio = folioEditando;
+  if (!folio) return;
+  const confirmado = window.confirm(`¿Deseas eliminar definitivamente el vale ${folioStr(folio)}?\n\nEsto borra el registro por completo de Sheets (venta y/o merma) y no se puede deshacer.`);
+  if (!confirmado) return;
+
+  const boton = document.getElementById('btn-cancelar-vale');
+  const botonOriginal = boton.textContent;
+  boton.disabled = true;
+  document.getElementById('btn-cancelar-edicion').disabled = true;
+  document.getElementById('btn-imprimir').disabled = true;
+  document.getElementById('btn-guardar-sin-imprimir').disabled = true;
+  boton.textContent = 'Eliminando…';
+
+  try {
+    if (!navigator.onLine) throw new Error('sin conexión');
+    const url = `${APPS_SCRIPT_URL}?action=venta_cancelar&token=${encodeURIComponent(tokenActual)}&folio=${encodeURIComponent(folio)}`;
+    const data = await llamarJSONP(url);
+    if (data.error === 'no_autorizado') { await volverALogin(); return; }
+    if (!data.ok) throw new Error(data.error || 'No se pudo cancelar el vale.');
+
+    mostrarToast(`Vale ${folioStr(folio)} eliminado.`, 'ok');
+    // El inventario local ya estaba "regresado" desde que se entró a
+    // editar (ajustarDisponibleLocal +1 en cargarValeParaEditar) — al
+    // cancelar de verdad, esa reversión es correcta y definitiva, no hay
+    // que tocarla otra vez.
+    folioEditando = null;
+    document.getElementById('editando-banner').hidden = true;
+    resetForm();
+    actualizarBotonImprimirTexto();
+    cargarDisponible();
+    cargarVentasHoy();
+  } catch (err) {
+    mostrarToast(navigator.onLine ? `No se pudo cancelar: ${err.message}` : 'Sin conexión — no se puede cancelar un vale sin conexión. Intenta de nuevo cuando regrese la señal.', 'warn');
+  } finally {
+    boton.disabled = false;
+    boton.textContent = botonOriginal;
+    document.getElementById('btn-cancelar-edicion').disabled = false;
+    document.getElementById('btn-imprimir').disabled = false;
+    document.getElementById('btn-guardar-sin-imprimir').disabled = false;
+  }
+});
 
 document.getElementById('btn-cancelar-edicion').addEventListener('click', async () => {
   folioEditando = null;
