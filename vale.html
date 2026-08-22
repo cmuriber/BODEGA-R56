@@ -702,11 +702,28 @@
   }
 
   .checks-fila { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+  /* Color y Tamaño se ven como dos segmentos aparte: cada uno con un
+     fondo clarito distinto (verde para Color, tomate para Tamaño — el
+     mismo tono que usan sus chips ya seleccionados) en vez de compartir
+     un fondo blanco parejo donde no se nota dónde termina uno y empieza
+     el otro. */
+  .checks-grupo { border-radius: 10px; padding: 10px 12px; }
+  .checks-grupo:first-child { background: rgba(31,111,67,0.05); }
+  .checks-grupo:last-child { background: rgba(192,57,43,0.045); }
   .checks-grupo .g-label {
     font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;
     letter-spacing: 0.06em; margin-bottom: 6px; display: block;
   }
   .checks-grupo .opciones { display: flex; flex-wrap: wrap; gap: 6px; }
+  /* Tamaño siempre son las mismas 10 opciones — en vez de dejar que se
+     acomoden como quepan (y a veces caigan en 3 renglones), se fuerzan 5
+     columnas fijas para que sean exactamente 2 renglones de 5, sin
+     importar el ancho disponible. */
+  .checks-grupo:last-child .opciones { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+  .checks-grupo:last-child .chip-check.size {
+    padding: 6px 4px; font-size: 11px; justify-content: center; white-space: nowrap;
+  }
+  .checks-grupo:last-child .size-unit { min-width: 0; }
   .chip-check {
     display: inline-flex; align-items: center; gap: 5px;
     border: 1px solid var(--card-border); border-radius: 999px; padding: 6px 11px 6px 8px;
@@ -910,9 +927,14 @@
     }
     .row-campos label { margin-bottom: 3px; }
 
-    /* Color y Tamaño lado a lado en vez de uno encima del otro. */
-    .checks-fila { flex-direction: row; gap: 22px; margin-top: 10px; }
-    .checks-grupo:first-child { flex: 0 0 190px; }
+    /* Color y Tamaño lado a lado en vez de uno encima del otro. Además de
+       los fondos de color de cada segmento (arriba), aquí se agrega una
+       línea vertical de separación entre los dos para que se note todavía
+       más claro dónde termina uno y empieza el otro. */
+    .checks-fila { flex-direction: row; gap: 0; margin-top: 10px; }
+    .checks-grupo:first-child {
+      flex: 0 0 270px; margin-right: 18px; border-right: 1px solid var(--card-border); padding-right: 18px;
+    }
     .checks-grupo:last-child { flex: 1; }
 
     /* Recorta un poco más los espacios verticales entre secciones para que
