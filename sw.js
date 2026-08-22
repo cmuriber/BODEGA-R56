@@ -3,7 +3,7 @@
 // que abra sin internet. Los datos se manejan aparte con IndexedDB (ver
 // app.js, app-manifiesto.js y app-vale.js).
 
-const CACHE_NAME = 'r56-dashboard-v16';
+const CACHE_NAME = 'r56-dashboard-v18';
 const SHELL_FILES = [
   './index.html',
   './app.js',

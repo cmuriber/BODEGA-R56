@@ -242,6 +242,17 @@ async function iniciarSesionConToken(token, rol, nombre) {
   partidas = [nuevaPartida()];
   renderPartidas();
 
+  // El panel de Manifiesto (solo consulta, columna derecha) arranca igual
+  // que el formulario: con lo último que ya se había guardado en este
+  // dispositivo, de inmediato, en vez de quedarse en blanco/cargando hasta
+  // que responda el servidor. cargarDisponible() de todos modos lo vuelve
+  // a redibujar en cuanto llega el dato real — esto solo evita el hueco
+  // vacío mientras tanto.
+  const disponibleGuardado = localStorage.getItem('r56-disponible-venta');
+  if (disponibleGuardado) {
+    try { carrosDisponibles = JSON.parse(disponibleGuardado); renderManifiestoPanel(); } catch (e) {}
+  }
+
   // Los catálogos se piden los 4 en paralelo (no uno tras otro) y cada
   // uno redibuja su parte en cuanto llega, sin bloquear a los demás.
   cargarDisponible().then(() => renderPartidas());
@@ -792,22 +803,26 @@ function renderManifiestoPanel() {
   const bodyEl = document.getElementById('manifiesto-body');
   if (!carro) { bodyEl.innerHTML = '<div class="manifiesto-vacio">Sin carros abiertos.</div>'; return; }
 
+  // El invernadero (ej. "4 · B · ARACELI") ya no se repite en cada
+  // renglón de tamaño — se pone una sola vez como encabezado del grupo y
+  // abajo se desglosan sus tamaños, así se lee mejor con varias naves.
   let rows = '';
   (carro.naves || []).forEach(n => {
     const compuesto = [n.invernadero, n.letra, n.semilla].filter(Boolean).join(' · ');
+    rows += `<tr class="nave-fila-titulo"><td colspan="2">${compuesto}</td></tr>`;
     CAMPOS_TAMANO.forEach(t => {
       const actual = Number(n.disponible && n.disponible[t.param]) || 0;
       let cls = '';
       if (actual < 0) cls = 'negativo'; else if (actual === 0) cls = 'cero'; else if (actual <= 5) cls = 'bajo';
-      rows += `<tr><td>${compuesto}</td><td>${t.label}</td><td style="text-align:right;"><span class="disp-badge ${cls}">${actual}</span></td></tr>`;
+      rows += `<tr><td>${t.label}</td><td style="text-align:right;"><span class="disp-badge ${cls}">${actual}</span></td></tr>`;
     });
   });
-  if (!rows) rows = '<tr><td colspan="3" class="manifiesto-vacio-fila">Sin existencias registradas para este carro.</td></tr>';
+  if (!rows) rows = '<tr><td colspan="2" class="manifiesto-vacio-fila">Sin existencias registradas para este carro.</td></tr>';
 
   bodyEl.innerHTML = `
     <div class="manifiesto-meta">Carro <b>${carro.carro}</b> · Agricultor <b>${carro.agricultor}</b>${carro.esDeHoy ? '' : ' · <span class="badge-later">Abierto (no es de hoy)</span>'}</div>
     <table class="manifiesto-tabla">
-      <thead><tr><th>Invernadero</th><th>Tamaño</th><th style="text-align:right;">Disponible</th></tr></thead>
+      <thead><tr><th>Tamaño</th><th style="text-align:right;">Disponible</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
   `;
