@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6f43">
+<title>Bodega R-56 — Créditos / Pagos</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3f5f4;
+    --card: #ffffff;
+    --card-border: #dfe4e1;
+    --tomate: #c0392b;
+    --tomate-dim: #96301f;
+    --tallo: #1f6f43;
+    --ambar: #b7791f;
+    --dorado: #b7791f;
+    --dorado-dim: #8a6a1f;
+    --text: #202824;
+    --text-dim: #667a70;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(24px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Login (idéntico a los demás módulos) ---------- */
+  #login-view {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(183,121,31,0.06), transparent 60%),
+      var(--bg);
+  }
+  #login-view[hidden] { display: none; }
+
+  .login-card {
+    width: 100%;
+    max-width: 360px;
+    background: linear-gradient(165deg, #ffffff 0%, #fafbfa 100%);
+    border: 1px solid rgba(183,121,31,0.25);
+    border-radius: 18px;
+    padding: 36px 28px 28px;
+    position: relative;
+    box-shadow: 0 12px 32px rgba(23,85,52,0.12), 0 2px 8px rgba(23,85,52,0.08);
+  }
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 56px; height: 3px;
+    border-radius: 0 0 4px 4px;
+    background: linear-gradient(90deg, var(--dorado-dim), var(--dorado));
+  }
+
+  .login-eyebrow {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--dorado);
+    text-align: center;
+    font-weight: 700;
+  }
+  .login-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 30px;
+    font-weight: 700;
+    text-align: center;
+    margin: 6px 0 4px;
+    color: var(--text);
+  }
+  .login-sub {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 26px;
+  }
+
+  .login-field { margin-bottom: 16px; }
+  .login-field label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .login-field input {
+    width: 100%;
+    background: #fafbfa;
+    border: 1px solid rgba(183,121,31,0.2);
+    border-radius: 10px;
+    padding: 13px 14px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  .login-field input:focus {
+    outline: none;
+    border-color: var(--dorado);
+  }
+
+  #login-error {
+    color: #c0392b;
+    font-size: 13px;
+    text-align: center;
+    margin: -4px 0 14px;
+    min-height: 16px;
+  }
+
+  button#login-submit {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1f6f43, #175534);
+    color: #f3f5f4;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  button#login-submit:disabled { opacity: 0.6; }
+
+  /* ---------- App ---------- */
+  #app-view[hidden] { display: none; }
+
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 20px 20px 0;
+  }
+  .marca {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .titulo-modulo { font-size: 18px; font-weight: 600; margin-top: 4px; }
+
+  .top-acciones { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .top-acciones-fila { display: flex; align-items: center; gap: 10px; }
+  .top-acciones a, .top-acciones button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 13px;
+    padding: 6px 0;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .modulos-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .modulos-nav .modulo-link {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--text-dim);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 7px 14px;
+    white-space: nowrap;
+    cursor: default;
+  }
+  .modulos-nav a.modulo-link { cursor: pointer; }
+  .modulos-nav a.modulo-link:hover { border-color: var(--tallo); color: var(--tallo); }
+  .modulos-nav .modulo-link.activo { background: var(--tallo); border-color: var(--tallo); color: #fff; }
+
+  .usuario-chip {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .usuario-chip::before { content: '👤 '; }
+
+  #error-box {
+    margin: 16px 20px 0;
+    padding: 10px 14px;
+    background: rgba(183, 121, 31, 0.15);
+    border: 1px solid var(--ambar);
+    color: var(--ambar);
+    font-size: 13px;
+    border-radius: 10px;
+  }
+  #error-box[hidden] { display: none; }
+
+  .seccion-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 19px;
+  }
+  .seccion-titulo-chica {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .btn-primario {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--tomate), var(--tomate-dim));
+    color: #FFF8F0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .btn-primario:disabled { opacity: 0.45; cursor: default; }
+  .btn-secundario {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn-texto {
+    background: none;
+    border: none;
+    color: var(--dorado);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 0;
+  }
+  .btn-peligro {
+    background: transparent; border: 1px solid var(--tomate); color: var(--tomate-dim);
+    border-radius: 10px; padding: 8px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-peligro:hover { background: rgba(192,57,43,0.08); }
+
+  .admin-chip {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ambar); border: 1px solid var(--ambar); border-radius: 20px; padding: 3px 9px;
+    background: rgba(183,121,31,0.1);
+  }
+  .admin-chip[hidden] { display: none; }
+
+  /* ---------- Modal genérico (idéntico a los demás módulos) ---------- */
+  .modal-fondo {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: flex-end;
+    z-index: 50;
+  }
+  .modal-fondo[hidden] { display: none; }
+  .modal-caja {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg);
+    border-radius: 20px 20px 0 0;
+    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
+    max-height: 92vh;
+    overflow-y: auto;
+    border-top: 1px solid rgba(183,121,31,0.25);
+  }
+  .modal-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  .campo { margin-bottom: 12px; position: relative; }
+  .campo label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .campo select, .campo input[type=text], .campo input[type=number] {
+    width: 100%;
+    background: #fafbfa;
+    border: 1px solid var(--card-border);
+    border-radius: 9px;
+    padding: 10px 11px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  .campo select:focus, .campo input:focus { outline: none; border-color: var(--dorado); }
+  .campo[hidden] { display: none; }
+
+  #pago-cliente-suggerencias {
+    display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 60;
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 10px;
+    max-height: 200px; overflow-y: auto; box-shadow: 0 8px 24px rgba(23,85,52,0.12);
+  }
+  #pago-cliente-suggerencias.show { display: block; }
+  #pago-cliente-suggerencias .opt { padding: 10px 12px; font-size: 14px; cursor: pointer; }
+  #pago-cliente-suggerencias .opt:active { background: var(--bg); }
+
+  .forma-pago-opciones { display: flex; gap: 8px; }
+  .forma-pago-opciones label {
+    flex: 1; text-align: center; border: 1px solid var(--card-border); border-radius: 9px;
+    padding: 10px 6px; font-size: 13px; font-weight: 600; color: var(--text-dim); cursor: pointer;
+    background: #fafbfa;
+  }
+  .forma-pago-opciones input { display: none; }
+  .forma-pago-opciones input:checked + span { color: var(--tallo); }
+  .forma-pago-opciones label:has(input:checked) { border-color: var(--tallo); background: rgba(31,111,67,0.06); color: var(--tallo); }
+
+  .campo-error { color: #c0392b; font-size: 13px; min-height: 16px; margin: -4px 0 8px; }
+
+  .modal-acciones { display: flex; gap: 10px; margin-top: 6px; }
+  .modal-acciones .btn-secundario, .modal-acciones .btn-primario { flex: 1; }
+
+  /* ---------- Aviso flotante ---------- */
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(90px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    max-width: calc(100% - 40px);
+    background: var(--tallo);
+    color: #fafbfa;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: center;
+    padding: 10px 18px;
+    border-radius: 20px;
+    z-index: 60;
+    box-shadow: 0 8px 24px rgba(23,85,52,0.14);
+  }
+  #toast[hidden] { display: none; }
+  #toast.toast--pendiente { background: var(--ambar); }
+  #toast.toast--error { background: var(--tomate); }
+
+  /* ---------- Módulo Créditos/Pagos ---------- */
+
+  .cliente-campo { margin: 12px 20px 0; position: relative; }
+  .cliente-campo label {
+    display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-dim); margin-bottom: 4px;
+  }
+  .cliente-campo input {
+    width: 100%; background: #fafbfa; border: 1px solid var(--card-border); border-radius: 9px;
+    padding: 11px 12px; font-size: 15px; color: var(--text); font-family: 'Inter', sans-serif;
+  }
+  .cliente-campo input:focus { outline: none; border-color: var(--dorado); }
+  #filtro-cliente-suggerencias {
+    display: none; position: absolute; left: 20px; right: 20px; top: calc(100% + 4px); z-index: 30;
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 10px;
+    max-height: 240px; overflow-y: auto; box-shadow: 0 8px 24px rgba(23,85,52,0.12);
+  }
+  #filtro-cliente-suggerencias.show { display: block; }
+  #filtro-cliente-suggerencias .opt { padding: 10px 12px; font-size: 14px; cursor: pointer; }
+  #filtro-cliente-suggerencias .opt:active { background: var(--bg); }
+
+  .sin-cliente-msg {
+    margin: 30px 20px; text-align: center; color: var(--text-dim); font-size: 14px; padding: 20px;
+    border: 1px dashed var(--card-border); border-radius: 14px;
+  }
+  .sin-cliente-msg[hidden] { display: none; }
+
+  #cliente-panel[hidden] { display: none; }
+
+  .seccion-head-creditos {
+    display: flex; justify-content: space-between; align-items: baseline; margin: 18px 20px 10px;
+  }
+
+  .vales-tabla-wrap { margin: 0 20px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow: hidden; }
+  .vale-fila {
+    display: grid;
+    grid-template-columns: 26px 60px 1fr 64px 46px 62px 74px 74px 78px;
+    gap: 8px; align-items: center; padding: 10px 10px; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
+  }
+  .vale-fila:last-child { border-bottom: none; }
+  .vale-fila.head { font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); font-weight: 700; background: rgba(31,111,67,0.04); }
+  .vale-fila > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vale-fila .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .vale-fila input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+  .vale-fila.pagado { background: rgba(31,111,67,0.05); }
+  .status-badge {
+    font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; text-align: center;
+    background: rgba(183,121,31,0.15); color: var(--dorado-dim);
+  }
+  .status-badge.pagado { background: rgba(31,111,67,0.15); color: var(--tallo); }
+  .vales-vacio { padding: 26px 14px; text-align: center; color: var(--text-dim); font-size: 13.5px; }
+
+  .aplicar-bar {
+    margin: 12px 20px 0; padding: 12px 14px; background: var(--card); border: 1px solid var(--tallo);
+    border-radius: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  .aplicar-bar[hidden] { display: none; }
+  .aplicar-bar #aplicar-resumen { font-size: 13px; color: var(--text-dim); flex: 1 1 200px; }
+  .aplicar-bar .btn-primario { width: auto; flex: 0 0 auto; padding: 10px 18px; font-size: 13px; }
+
+  .saldo-favor-panel {
+    margin: 16px 20px 0; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 14px 16px;
+  }
+  #saldo-favor-total {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px; color: var(--tallo); margin-bottom: 10px;
+  }
+  .pago-pendiente-fila {
+    display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
+  }
+  .pago-pendiente-fila:last-child { border-bottom: none; }
+  .pago-pendiente-fila .monto { font-weight: 700; }
+  .pago-pendiente-fila .meta { color: var(--text-dim); font-size: 11.5px; }
+  .pago-pendiente-fila .btn-eliminar-pago {
+    background: none; border: none; color: var(--tomate-dim); font-size: 13px; cursor: pointer; padding: 4px 6px;
+  }
+  .pagos-pendientes-vacio { color: var(--text-dim); font-size: 13px; padding: 8px 0; }
+
+  .btn-registrar-pago { margin-top: 14px; }
+
+  /* ---------- Comprobante de pago impreso (rollo térmico de 80mm) ----------
+     Mismo formato/mecánica que el vale (Módulo 4) — ver vale.html. */
+  #print-area { display: none; }
+  @page { size: 80mm auto; margin: 0; }
+  @media print {
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area {
+      display: block; position: absolute; left: 0; top: 0;
+      width: 72mm; padding: 2mm 4mm 6mm;
+      font-family: 'Inter', sans-serif; color: #000; font-size: 11.5px; line-height: 1.4;
+    }
+    #print-area h2 { font-family: 'Barlow Condensed', sans-serif; text-align: center; margin: 0 0 2px; font-size: 17px; letter-spacing: 0.5px; }
+    #print-area .center { text-align: center; }
+    #print-area .linea-punteada { border-top: 1px dashed #000; margin: 6px 0; }
+    #print-area .reng { margin: 8px 0; }
+    #print-area .reng-label { font-size: 11px; color: #444; }
+    #print-area .reng-valor { font-weight: 700; font-size: 15px; }
+    #print-area .monto-grande { text-align: center; font-weight: 800; font-size: 26px; margin: 10px 0; }
+    #print-area .tot { font-weight: 700; font-size: 13px; margin-top: 8px; }
+  }
+
+  /* ---------- Layout de 2 columnas en pantallas anchas (mostrador/PC) ----------
+     Igual convención que los demás módulos: este bloque va AL FINAL del
+     <style> a propósito, para ganarle en cascada a las reglas base de
+     arriba con la misma especificidad. */
+  @media (min-width: 860px) {
+    body { max-width: 1180px; }
+    .creditos-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 22px;
+      align-items: start;
+      margin-top: 6px;
+    }
+    .col-derecha { position: sticky; top: 16px; }
+    .cliente-campo { margin-top: 8px; }
+  }
+</style>
+</head>
+<body>
+
+  <section id="login-view">
+    <form class="login-card" id="login-form">
+      <div class="login-eyebrow">Sistema · Acceso</div>
+      <div class="login-title">Bienvenido</div>
+      <div class="login-sub">Ingresa tus credenciales para continuar</div>
+
+      <div class="login-field">
+        <label for="login-usuario">Usuario</label>
+        <input type="text" id="login-usuario" autocomplete="username" autocapitalize="off" required>
+      </div>
+      <div class="login-field">
+        <label for="login-password">Contraseña</label>
+        <input type="password" id="login-password" autocomplete="current-password" required>
+      </div>
+
+      <div id="login-error"></div>
+
+      <button type="submit" id="login-submit">Iniciar sesión</button>
+    </form>
+  </section>
+
+  <div id="app-view" hidden>
+
+    <div class="top">
+      <div>
+        <div class="marca">Bodega R-56</div>
+        <div class="titulo-modulo">Créditos / Pagos</div>
+      </div>
+      <div class="top-acciones">
+        <div class="top-acciones-fila">
+          <nav class="modulos-nav">
+            <a class="modulo-link" href="./index.html">Dashboard</a>
+            <a class="modulo-link" href="./manifiesto.html">Manifiesto</a>
+            <a class="modulo-link" href="./vale.html">Vale</a>
+            <span class="modulo-link activo">Créditos</span>
+          </nav>
+          <span class="admin-chip" id="admin-chip" hidden>Admin</span>
+          <button id="btn-salir" type="button">Salir</button>
+        </div>
+        <span class="usuario-chip" id="usuario-chip"></span>
+      </div>
+    </div>
+
+    <div id="error-box" hidden></div>
+
+    <div class="creditos-layout">
+      <div class="col-izquierda">
+
+        <div class="cliente-campo">
+          <label>Cliente</label>
+          <input type="text" id="filtro-cliente-input" placeholder="Escribe para buscar un cliente…" autocomplete="off">
+          <div id="filtro-cliente-suggerencias"></div>
+        </div>
+
+        <div class="sin-cliente-msg" id="sin-cliente-msg">Busca y selecciona un cliente para ver sus vales a crédito.</div>
+
+        <div id="cliente-panel" hidden>
+          <div class="seccion-head-creditos">
+            <div class="seccion-titulo" id="cliente-nombre-titulo">—</div>
+            <button class="btn-texto" id="btn-limpiar-cliente" type="button">Cambiar cliente ✕</button>
+          </div>
+
+          <div class="vales-tabla-wrap">
+            <div class="vale-fila head">
+              <span></span><span>Folio</span><span>Fecha</span><span>Carro</span><span>Cant.</span><span>Precio</span><span>Total</span><span>Saldo</span><span>Estado</span>
+            </div>
+            <div id="vales-lista"></div>
+          </div>
+
+          <div class="aplicar-bar" id="aplicar-bar" hidden>
+            <div id="aplicar-resumen"></div>
+            <button class="btn-primario" id="btn-aplicar-pagos" type="button">Aplicar saldo a favor</button>
+          </div>
+        </div>
+
+      </div>
+      <div class="col-derecha">
+
+        <div class="saldo-favor-panel">
+          <div class="seccion-titulo-chica">Pagos pendientes por aplicar</div>
+          <div id="saldo-favor-total">$0</div>
+          <div id="pagos-pendientes-lista"><div class="pagos-pendientes-vacio">Selecciona un cliente para ver su saldo a favor.</div></div>
+        </div>
+
+        <button class="btn-primario btn-registrar-pago" id="btn-registrar-pago" type="button">+ Registrar pago de cliente</button>
+
+      </div>
+    </div>
+
+    <div style="height:20px;"></div>
+  </div>
+
+  <!-- Modal: Registrar pago de cliente -->
+  <div class="modal-fondo" id="modal-pago" hidden>
+    <div class="modal-caja">
+      <div class="modal-titulo">Pago de cliente</div>
+
+      <div class="campo">
+        <label>Cliente</label>
+        <input type="text" id="pago-cliente-input" placeholder="Escribe para buscar…" autocomplete="off">
+        <div id="pago-cliente-suggerencias"></div>
+      </div>
+
+      <div class="campo">
+        <label>Monto</label>
+        <input type="number" id="pago-monto-input" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+      </div>
+
+      <div class="campo">
+        <label>Forma de pago</label>
+        <div class="forma-pago-opciones">
+          <label><input type="radio" name="forma-pago" value="efectivo" checked><span>Efectivo</span></label>
+          <label><input type="radio" name="forma-pago" value="transferencia"><span>Transferencia</span></label>
+          <label><input type="radio" name="forma-pago" value="cheque"><span>Cheque</span></label>
+        </div>
+      </div>
+
+      <div class="campo" id="campo-cuenta-destino" hidden>
+        <label>Cuenta destino</label>
+        <select id="pago-cuenta-select">
+          <option value="">Seleccionar…</option>
+        </select>
+      </div>
+
+      <div class="campo-error" id="pago-error"></div>
+
+      <div class="modal-acciones">
+        <button class="btn-secundario" id="pago-cancelar" type="button">Cancelar</button>
+        <button class="btn-primario" id="pago-guardar-btn" type="button">Guardar pago</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: confirmación de pago guardado + imprimir comprobante -->
+  <div class="modal-fondo" id="modal-pago-listo" hidden>
+    <div class="modal-caja" style="text-align:center; padding-top:22px;">
+      <div style="font-size:34px; margin-bottom:6px;">✓</div>
+      <div class="modal-titulo" style="justify-content:center;">Pago registrado</div>
+      <div id="pago-listo-resumen" style="font-size:14px; color:var(--text-dim); margin-bottom:16px;"></div>
+      <div class="modal-acciones">
+        <button class="btn-secundario" id="pago-listo-cerrar" type="button">Cerrar</button>
+        <button class="btn-primario" id="pago-listo-imprimir" type="button">🖨 Imprimir comprobante</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" hidden></div>
+  <div id="print-area"></div>
+
+  <script src="./app-creditos.js"></script>
+</body>
+</html>
