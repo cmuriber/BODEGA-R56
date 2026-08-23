@@ -397,12 +397,7 @@
   #filtro-cliente-suggerencias .opt { padding: 10px 12px; font-size: 14px; cursor: pointer; }
   #filtro-cliente-suggerencias .opt:active { background: var(--bg); }
 
-  .sin-cliente-msg {
-    margin: 30px 20px; text-align: center; color: var(--text-dim); font-size: 14px; padding: 20px;
-    border: 1px dashed var(--card-border); border-radius: 14px;
-  }
-  .sin-cliente-msg[hidden] { display: none; }
-
+  #todos-clientes-panel[hidden] { display: none; }
   #cliente-panel[hidden] { display: none; }
 
   .seccion-head-creditos {
@@ -412,7 +407,7 @@
   .vales-tabla-wrap { margin: 0 20px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow: hidden; }
   .vale-fila {
     display: grid;
-    grid-template-columns: 26px 60px 1fr 64px 46px 62px 74px 74px 78px;
+    grid-template-columns: 26px 60px 52px 1fr 46px 62px 74px 74px 78px;
     gap: 8px; align-items: center; padding: 10px 10px; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
   }
   .vale-fila:last-child { border-bottom: none; }
@@ -427,6 +422,22 @@
   }
   .status-badge.pagado { background: rgba(31,111,67,0.15); color: var(--tallo); }
   .vales-vacio { padding: 26px 14px; text-align: center; color: var(--text-dim); font-size: 13.5px; }
+
+  /* ---------- Vista "todos los clientes" (cuando no hay filtro activo) ----------
+     Mismas 9 columnas que .vale-fila, pero la primera es el nombre del
+     cliente (enlace, para filtrar desde ahí mismo) en vez de la casilla. */
+  .vale-fila-todos {
+    display: grid;
+    grid-template-columns: 1fr 60px 52px 70px 46px 62px 74px 74px 78px;
+    gap: 8px; align-items: center; padding: 10px 10px; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
+  }
+  .vale-fila-todos:last-child { border-bottom: none; }
+  .vale-fila-todos.head { font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); font-weight: 700; background: rgba(31,111,67,0.04); }
+  .vale-fila-todos > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vale-fila-todos .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .vale-fila-todos.pagado { background: rgba(31,111,67,0.05); }
+  .cliente-link { color: var(--tallo); font-weight: 700; cursor: pointer; text-decoration: none; }
+  .cliente-link:hover { text-decoration: underline; }
 
   .aplicar-bar {
     margin: 12px 20px 0; padding: 12px 14px; background: var(--card); border: 1px solid var(--tallo);
@@ -551,7 +562,17 @@
           <div id="filtro-cliente-suggerencias"></div>
         </div>
 
-        <div class="sin-cliente-msg" id="sin-cliente-msg">Busca y selecciona un cliente para ver sus vales a crédito.</div>
+        <div id="todos-clientes-panel">
+          <div class="seccion-head-creditos">
+            <div class="seccion-titulo">Todos los clientes</div>
+          </div>
+          <div class="vales-tabla-wrap">
+            <div class="vale-fila-todos head">
+              <span>Cliente</span><span>Folio</span><span>Fecha</span><span>Carro</span><span>Cant.</span><span>Precio</span><span>Total</span><span>Saldo</span><span>Estado</span>
+            </div>
+            <div id="todos-vales-lista"><div class="vales-vacio">Cargando…</div></div>
+          </div>
+        </div>
 
         <div id="cliente-panel" hidden>
           <div class="seccion-head-creditos">

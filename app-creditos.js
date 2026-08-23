@@ -175,6 +175,7 @@ let usuarioNombre = null;
 let clientesCatalogo = [];   // acción "clientes"
 let cuentasCatalogo = [];    // acción "cuentas_lista"
 let clienteActivo = null;    // cliente elegido en el filtro de la izquierda
+let todosVales = [];         // acción "creditos_todos" — vista por default (sin cliente filtrado)
 let valesCliente = [];       // acción "creditos_cliente"
 let pagosPendientesCliente = []; // acción "pagos_pendientes_cliente"
 let foliosSeleccionados = []; // orden en que se fueron marcando las casillas
@@ -209,6 +210,7 @@ async function iniciarSesionConToken(token, rol, nombre) {
 
   cargarClientes();
   cargarCuentas();
+  cargarTodosLosVales();
   sincronizar();
 }
 
@@ -320,7 +322,7 @@ filtroClienteSug.addEventListener('mousedown', (e) => {
 
 async function seleccionarClienteFiltro(nombre) {
   clienteActivo = nombre;
-  document.getElementById('sin-cliente-msg').hidden = true;
+  document.getElementById('todos-clientes-panel').hidden = true;
   document.getElementById('cliente-panel').hidden = false;
   document.getElementById('cliente-nombre-titulo').textContent = nombre;
   foliosSeleccionados = [];
@@ -336,9 +338,60 @@ document.getElementById('btn-limpiar-cliente').addEventListener('click', () => {
   foliosSeleccionados = [];
   filtroClienteInput.value = '';
   document.getElementById('cliente-panel').hidden = true;
-  document.getElementById('sin-cliente-msg').hidden = false;
+  document.getElementById('todos-clientes-panel').hidden = false;
   document.getElementById('saldo-favor-total').textContent = '$0';
   document.getElementById('pagos-pendientes-lista').innerHTML = '<div class="pagos-pendientes-vacio">Selecciona un cliente para ver su saldo a favor.</div>';
+  cargarTodosLosVales(); // refresca por si hubo cambios mientras se veía un cliente
+});
+
+// ---------- Vista "todos los clientes" (cuando no hay filtro activo) ----------
+// Muestra, sin necesidad de filtrar, los vales a crédito de todos los
+// clientes (misma regla de un mes que por cliente: no liquidados siempre,
+// liquidados solo del último mes), en el orden en que se fueron
+// ingresando. El nombre de cada cliente es un enlace: da clic ahí para
+// filtrar de inmediato las cuentas de ese cliente.
+
+async function cargarTodosLosVales() {
+  try {
+    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=creditos_todos&token=${encodeURIComponent(tokenActual)}`);
+    if (data.error === 'no_autorizado') { await volverALogin(); return; }
+    if (!data.ok) { todosVales = []; }
+    else { todosVales = data.vales || []; }
+  } catch (err) {
+    todosVales = [];
+    mostrarToast('Sin conexión — no se pudo cargar la lista de todos los clientes.', 'warn');
+  }
+  renderTodosVales();
+}
+
+function renderTodosVales() {
+  const cont = document.getElementById('todos-vales-lista');
+  if (todosVales.length === 0) {
+    cont.innerHTML = '<div class="vales-vacio">No hay vales a crédito pendientes ni recientes.</div>';
+    return;
+  }
+  cont.innerHTML = todosVales.map(v => {
+    const pagado = String(v.status || '').toUpperCase() === 'PAGADO';
+    return `
+    <div class="vale-fila-todos ${pagado ? 'pagado' : ''}" data-folio="${v.folio}">
+      <span><a class="cliente-link" data-cliente="${v.cliente}" title="Ver las cuentas de ${v.cliente}">${v.cliente}</a></span>
+      <span>${folioStr(v.folio)}</span>
+      <span>${fechaCorta(v.fecha)}</span>
+      <span>${v.carro}</span>
+      <span class="num">${fmt(v.cantidad)}</span>
+      <span class="num">${v.precio === 'varios' || v.precio === 'VARIOS' ? 'varios' : '$' + fmt(v.precio)}</span>
+      <span class="num">$${fmt(v.total)}</span>
+      <span class="num">$${fmt(v.saldoPendiente)}</span>
+      <span><span class="status-badge ${pagado ? 'pagado' : ''}">${pagado ? 'Pagado' : 'Pendiente'}</span></span>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('todos-vales-lista').addEventListener('click', (e) => {
+  const nombre = e.target.closest('.cliente-link')?.dataset.cliente;
+  if (!nombre) return;
+  filtroClienteInput.value = nombre;
+  seleccionarClienteFiltro(nombre);
 });
 
 // ---------- Vales a crédito del cliente activo ----------
@@ -421,7 +474,7 @@ document.getElementById('btn-aplicar-pagos').addEventListener('click', async () 
     if (!data.ok) throw new Error(data.error || 'No se pudo aplicar el saldo.');
     mostrarToast('Saldo a favor aplicado correctamente.', 'ok');
     foliosSeleccionados = [];
-    await Promise.all([cargarCreditosCliente(), cargarPagosPendientesCliente()]);
+    await Promise.all([cargarCreditosCliente(), cargarPagosPendientesCliente(), cargarTodosLosVales()]);
   } catch (err) {
     mostrarToast(navigator.onLine ? `No se pudo aplicar: ${err.message}` : 'Sin conexión — no se puede aplicar un pago sin conexión. Intenta de nuevo cuando regrese la señal.', 'warn');
   } finally {
@@ -480,7 +533,7 @@ document.getElementById('pagos-pendientes-lista').addEventListener('click', asyn
     if (data.error === 'no_autorizado') { await volverALogin(); return; }
     if (!data.ok) throw new Error(data.error || 'No se pudo eliminar el pago.');
     mostrarToast('Pago eliminado.', 'ok');
-    await Promise.all([cargarCreditosCliente(), cargarPagosPendientesCliente()]);
+    await Promise.all([cargarCreditosCliente(), cargarPagosPendientesCliente(), cargarTodosLosVales()]);
   } catch (err) {
     mostrarToast(navigator.onLine ? `No se pudo eliminar: ${err.message}` : 'Sin conexión — no se puede eliminar un pago sin conexión. Intenta de nuevo cuando regrese la señal.', 'warn');
   }
