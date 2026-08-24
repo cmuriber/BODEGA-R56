@@ -208,6 +208,17 @@ async function iniciarSesionConToken(token, rol, nombre) {
   const usuarioChip = document.getElementById('usuario-chip');
   if (usuarioChip) usuarioChip.textContent = usuarioNombre || '';
 
+  // Mismo patrón que ya usa el Módulo de Vale: la lista de "Todos los
+  // clientes" (lo primero que se ve al entrar) se pinta de inmediato con
+  // lo último que ya se había guardado en este dispositivo, sin esperar a
+  // la red — cargarTodosLosVales() la vuelve a pintar en cuanto llega la
+  // respuesta real del servidor, así que esto solo evita el hueco en
+  // blanco/"Cargando…" mientras tanto.
+  try {
+    const guardado = localStorage.getItem('r56-todos-vales');
+    if (guardado) { todosVales = JSON.parse(guardado); renderTodosVales(); }
+  } catch (err) {}
+
   cargarClientes();
   cargarCuentas();
   cargarTodosLosVales();
@@ -358,7 +369,10 @@ async function cargarTodosLosVales() {
     const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=creditos_todos&token=${encodeURIComponent(tokenActual)}`);
     if (data.error === 'no_autorizado') { await volverALogin(); return; }
     if (!data.ok) { todosVales = []; }
-    else { todosVales = data.vales || []; }
+    else {
+      todosVales = data.vales || [];
+      try { localStorage.setItem('r56-todos-vales', JSON.stringify(todosVales)); } catch (err) {}
+    }
   } catch (err) {
     todosVales = [];
     mostrarToast('Sin conexión — no se pudo cargar la lista de todos los clientes.', 'warn');
