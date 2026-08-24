@@ -383,11 +383,14 @@ function renderTodosVales() {
       <span class="num">$${fmt(v.total)}</span>
       <span class="num">$${fmt(v.saldoPendiente)}</span>
       <span><span class="status-badge ${pagado ? 'pagado' : ''}">${pagado ? 'Pagado' : 'Pendiente'}</span></span>
-    </div>`;
+      <span>${celdaAplicado(v, 'todos')}</span>
+    </div>${detalleAplicaciones(v, 'todos')}`;
   }).join('');
 }
 
 document.getElementById('todos-vales-lista').addEventListener('click', (e) => {
+  const claveToggle = e.target.closest('[data-toggle-aplicado]')?.dataset.toggleAplicado;
+  if (claveToggle) { alternarDetalleAplicaciones(claveToggle); return; }
   const nombre = e.target.closest('.cliente-link')?.dataset.cliente;
   if (!nombre) return;
   filtroClienteInput.value = nombre;
@@ -431,7 +434,8 @@ function renderVales() {
       <span class="num">$${fmt(v.total)}</span>
       <span class="num">$${fmt(v.saldoPendiente)}</span>
       <span><span class="status-badge ${pagado ? 'pagado' : ''}">${pagado ? 'Pagado' : 'Pendiente'}</span></span>
-    </div>`;
+      <span>${celdaAplicado(v, 'cliente')}</span>
+    </div>${detalleAplicaciones(v, 'cliente')}`;
   }).join('');
   actualizarBarraAplicar();
 }
@@ -446,6 +450,43 @@ document.getElementById('vales-lista').addEventListener('change', (e) => {
   }
   actualizarBarraAplicar();
 });
+
+document.getElementById('vales-lista').addEventListener('click', (e) => {
+  const claveToggle = e.target.closest('[data-toggle-aplicado]')?.dataset.toggleAplicado;
+  if (claveToggle) alternarDetalleAplicaciones(claveToggle);
+});
+
+// ---------- Columna "Aplicado" — trazabilidad de qué pago(s) cubrieron cada vale ----------
+// Compartida entre la vista por cliente y la de "todos los clientes"
+// (prefijoId distingue los IDs del DOM entre ambas, porque las dos tablas
+// pueden tener filas en el mismo folio a la vez, aunque solo una esté
+// visible). Viene de v.aplicaciones, que ya trae Code.gs armado (folio →
+// lista de {monto, fecha, forma}) vía el action creditos_cliente/creditos_todos.
+
+function celdaAplicado(v, prefijoId) {
+  const n = (v.aplicaciones || []).length;
+  if (n === 0) return '<span class="aplicado-vacio">—</span>';
+  return `<button type="button" class="aplicado-btn" data-toggle-aplicado="${prefijoId}-${v.folio}">${n} pago${n === 1 ? '' : 's'} ▾</button>`;
+}
+
+function detalleAplicaciones(v, prefijoId) {
+  if (!v.aplicaciones || v.aplicaciones.length === 0) return '';
+  const filas = v.aplicaciones.map(a => `
+    <div class="aplicacion-fila">
+      <span class="meta">${fechaCorta(a.fecha)} · ${FORMA_LABELS[a.forma] || a.forma || '—'}</span>
+      <span class="monto">$${fmt(a.monto)}</span>
+    </div>`).join('');
+  return `
+  <div class="vale-aplicaciones-detalle" id="aplic-detalle-${prefijoId}-${v.folio}" hidden>
+    <div class="titulo-chico">Pagos aplicados a este vale</div>
+    ${filas}
+  </div>`;
+}
+
+function alternarDetalleAplicaciones(clave) {
+  const detalle = document.getElementById('aplic-detalle-' + clave);
+  if (detalle) detalle.hidden = !detalle.hidden;
+}
 
 function actualizarBarraAplicar() {
   const barra = document.getElementById('aplicar-bar');
