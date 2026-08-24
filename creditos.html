@@ -406,7 +406,11 @@
   .seccion-head-acciones { display: flex; align-items: baseline; gap: 16px; }
   .btn-estado-cuenta { color: var(--tallo); }
 
-  .vales-tabla-wrap { margin: 0 20px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow: hidden; }
+  /* overflow-x: auto (en vez de "hidden") — así, si la ventana queda más
+     angosta de lo normal (o algún nombre es muy largo), la tabla se
+     desliza horizontalmente en vez de cortar en seco la última columna
+     sin forma de verla (justo lo que pasaba con "Aplicado"). */
+  .vales-tabla-wrap { margin: 0 20px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow-x: auto; }
   .vale-fila {
     display: grid;
     /* Carro ya no es 1fr (antes se comía todo el espacio libre y dejaba un
@@ -479,10 +483,11 @@
   .vale-fila-todos {
     display: grid;
     /* Cliente tiene un mínimo garantizado (antes se truncaba con "…" aun
-       con espacio de sobra) — se le quita un poco de aire a las columnas
-       que sobraban (Fecha/Carro/Cant./Precio/Total/Saldo/Estado/Aplicado
-       ya venían holgadas) para dárselo a Cliente. */
-    grid-template-columns: minmax(150px, 1fr) 60px 44px 64px 40px 56px 70px 70px 76px 66px;
+       con espacio de sobra) — se le quita un poco de aire a las demás
+       columnas para dárselo a Cliente, cuidando de dejar el total dentro
+       del ancho normal de la pantalla (si de plano no cupiera por una
+       ventana angosta, .vales-tabla-wrap ahora desliza en vez de cortar). */
+    grid-template-columns: minmax(130px, 1fr) 58px 40px 58px 36px 50px 64px 64px 72px 60px;
     gap: 8px; align-items: center; padding: 10px 10px; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
   }
   .vale-fila-todos:last-child { border-bottom: none; }
