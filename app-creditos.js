@@ -389,6 +389,8 @@ function renderTodosVales() {
 }
 
 document.getElementById('todos-vales-lista').addEventListener('click', (e) => {
+  const quitarBtn = e.target.closest('[data-quitar-aplicacion]');
+  if (quitarBtn) { quitarAplicacion(quitarBtn.dataset.quitarAplicacion, quitarBtn.dataset.folio); return; }
   const claveToggle = e.target.closest('[data-toggle-aplicado]')?.dataset.toggleAplicado;
   if (claveToggle) { alternarDetalleAplicaciones(claveToggle); return; }
   const nombre = e.target.closest('.cliente-link')?.dataset.cliente;
@@ -452,6 +454,8 @@ document.getElementById('vales-lista').addEventListener('change', (e) => {
 });
 
 document.getElementById('vales-lista').addEventListener('click', (e) => {
+  const quitarBtn = e.target.closest('[data-quitar-aplicacion]');
+  if (quitarBtn) { quitarAplicacion(quitarBtn.dataset.quitarAplicacion, quitarBtn.dataset.folio); return; }
   const claveToggle = e.target.closest('[data-toggle-aplicado]')?.dataset.toggleAplicado;
   if (claveToggle) alternarDetalleAplicaciones(claveToggle);
 });
@@ -474,7 +478,10 @@ function detalleAplicaciones(v, prefijoId) {
   const filas = v.aplicaciones.map(a => `
     <div class="aplicacion-fila">
       <span class="meta">${fechaCorta(a.fecha)} · ${FORMA_LABELS[a.forma] || a.forma || '—'}</span>
-      <span class="monto">$${fmt(a.monto)}</span>
+      <span class="aplicacion-derecha">
+        <span class="monto">$${fmt(a.monto)}</span>
+        <button type="button" class="quitar-aplicacion-btn" data-quitar-aplicacion="${a.id}" data-folio="${v.folio}" title="Quitar este pago aplicado (no borra el pago, solo lo regresa a pendiente por aplicar)">Quitar pago</button>
+      </span>
     </div>`).join('');
   return `
   <div class="vale-aplicaciones-detalle" id="aplic-detalle-${prefijoId}-${v.folio}" hidden>
@@ -486,6 +493,27 @@ function detalleAplicaciones(v, prefijoId) {
 function alternarDetalleAplicaciones(clave) {
   const detalle = document.getElementById('aplic-detalle-' + clave);
   if (detalle) detalle.hidden = !detalle.hidden;
+}
+
+// Quita UNA aplicación puntual (un pago aplicado a un vale), sin borrar el
+// pago original: el monto regresa a "pendiente por aplicar" para ese
+// cliente. Pensado para corregir un pago aplicado por error al vale
+// equivocado — el usuario lo confirma explícitamente porque, aunque no es
+// destructivo, sí cambia el estado (saldo/status) del vale.
+async function quitarAplicacion(aplicacionId, folio) {
+  const confirmado = confirm(`¿Quitar este pago aplicado al vale ${folioStr(Number(folio))}?\n\nEl pago NO se elimina — solo se regresa a "pendiente por aplicar" para poder aplicarlo al vale correcto.`);
+  if (!confirmado) return;
+  try {
+    if (!navigator.onLine) throw new Error('sin conexión');
+    const url = `${APPS_SCRIPT_URL}?action=aplicacion_quitar&token=${encodeURIComponent(tokenActual)}&aplicacionId=${encodeURIComponent(aplicacionId)}`;
+    const data = await llamarJSONP(url);
+    if (data.error === 'no_autorizado') { await volverALogin(); return; }
+    if (!data.ok) throw new Error(data.error || 'No se pudo quitar la aplicación.');
+    mostrarToast('Pago quitado del vale — regresó a pendiente por aplicar.', 'ok');
+    await Promise.all([cargarCreditosCliente(), cargarPagosPendientesCliente(), cargarTodosLosVales()]);
+  } catch (err) {
+    mostrarToast(navigator.onLine ? `No se pudo quitar: ${err.message}` : 'Sin conexión — no se puede quitar una aplicación sin conexión. Intenta de nuevo cuando regrese la señal.', 'warn');
+  }
 }
 
 function actualizarBarraAplicar() {

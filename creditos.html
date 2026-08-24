@@ -443,10 +443,17 @@
     font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); margin-bottom: 4px; font-weight: 700;
   }
   .vale-aplicaciones-detalle .aplicacion-fila {
-    display: flex; justify-content: space-between; gap: 10px; padding: 3px 0;
+    display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 3px 0;
   }
   .vale-aplicaciones-detalle .aplicacion-fila .monto { font-weight: 700; color: var(--tallo); }
   .vale-aplicaciones-detalle .aplicacion-fila .meta { color: var(--text-dim); }
+  .vale-aplicaciones-detalle .aplicacion-derecha { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .quitar-aplicacion-btn {
+    background: none; border: 1px solid var(--dorado-dim); color: var(--dorado-dim);
+    border-radius: 999px; padding: 2px 9px; font-size: 10.5px; font-weight: 700;
+    cursor: pointer; white-space: nowrap;
+  }
+  .quitar-aplicacion-btn:hover { background: rgba(183,121,31,0.15); }
 
   /* ---------- Vista "todos los clientes" (cuando no hay filtro activo) ----------
      Mismas 10 columnas que .vale-fila, pero la primera es el nombre del
