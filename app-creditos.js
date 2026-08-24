@@ -286,11 +286,13 @@ async function cargarCuentas() {
     const guardado = localStorage.getItem('r56-cuentas-creditos');
     if (guardado) { try { cuentasCatalogo = JSON.parse(guardado); } catch (e) {} }
   }
-  poblarSelectCuentas();
+  poblarSelectCuentas('pago-cuenta-select');
+  poblarSelectCuentas('estado-cuenta-cuenta-select');
 }
 
-function poblarSelectCuentas() {
-  const sel = document.getElementById('pago-cuenta-select');
+function poblarSelectCuentas(selectId = 'pago-cuenta-select') {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
   const actual = sel.value;
   sel.innerHTML = '<option value="">Seleccionar…</option>' +
     cuentasCatalogo.map(c => `<option value="${c.id}">${c.agricultor} — ${c.nombreCuenta}</option>`).join('');
@@ -763,6 +765,117 @@ document.getElementById('pago-listo-imprimir').addEventListener('click', () => {
   if (!ultimoPagoGuardado) return;
   document.getElementById('print-area').innerHTML = generarComprobanteHTML(ultimoPagoGuardado);
   window.print();
+});
+
+// ---------- Estado de cuenta (compendio de notas pendientes por cliente) ----------
+// Pedido explícito: junta TODAS las notas pendientes del cliente activo —
+// incluidas las que ya tienen un abono parcial pero siguen con saldo — para
+// que solo pague la diferencia. Antes de generar el PDF pide a qué cuenta
+// bancaria se le va a decir al cliente que pague (accionEstadoCuenta ya
+// regresa solo los datos bancarios de esa cuenta, nunca el agricultor
+// dueño). El "PDF" es semi-automático: se arma como documento imprimible y
+// el usuario lo guarda como PDF desde el diálogo de impresión de Chrome
+// (mismo criterio "v1 simple" ya confirmado para este módulo).
+
+document.getElementById('btn-estado-cuenta').addEventListener('click', () => {
+  if (!clienteActivo) return;
+  document.getElementById('estado-cuenta-cliente-nombre').textContent = clienteActivo;
+  document.getElementById('estado-cuenta-error').textContent = '';
+  document.getElementById('estado-cuenta-cuenta-select').value = '';
+  document.getElementById('modal-estado-cuenta').hidden = false;
+});
+
+document.getElementById('estado-cuenta-cancelar').addEventListener('click', () => {
+  document.getElementById('modal-estado-cuenta').hidden = true;
+});
+
+document.getElementById('estado-cuenta-generar').addEventListener('click', async () => {
+  const cuentaId = document.getElementById('estado-cuenta-cuenta-select').value;
+  const errorBox = document.getElementById('estado-cuenta-error');
+  errorBox.textContent = '';
+  if (!cuentaId) { errorBox.textContent = 'Selecciona a qué cuenta le va a hacer el pago el cliente.'; return; }
+  if (!clienteActivo) return;
+  const boton = document.getElementById('estado-cuenta-generar');
+  const textoOriginal = boton.textContent;
+  boton.disabled = true;
+  boton.textContent = 'Generando…';
+  try {
+    if (!navigator.onLine) throw new Error('sin conexión');
+    const url = `${APPS_SCRIPT_URL}?action=estado_cuenta&token=${encodeURIComponent(tokenActual)}&cliente=${encodeURIComponent(clienteActivo)}&cuentaId=${encodeURIComponent(cuentaId)}`;
+    const data = await llamarJSONP(url);
+    if (data.error === 'no_autorizado') { await volverALogin(); return; }
+    if (!data.ok) throw new Error(data.error || 'No se pudo generar el estado de cuenta.');
+    document.getElementById('modal-estado-cuenta').hidden = true;
+    imprimirEstadoCuenta(data);
+  } catch (err) {
+    errorBox.textContent = navigator.onLine ? err.message : 'Sin conexión — no se puede generar el estado de cuenta sin conexión.';
+  } finally {
+    boton.disabled = false;
+    boton.textContent = textoOriginal;
+  }
+});
+
+function generarEstadoCuentaHTML(d) {
+  const filas = d.partidas.map(p => `
+    <tr>
+      <td>${fechaCorta(p.fecha)}</td>
+      <td>${p.carro || ''}</td>
+      <td>${p.agricultor || ''}</td>
+      <td>${p.tamano || ''}</td>
+      <td class="num">${fmt(p.cajas)}</td>
+      <td class="num">$${fmt(p.precio)}</td>
+      <td class="num">$${fmt(p.subtotal)}</td>
+    </tr>`).join('');
+
+  const hayFavor = d.saldoFavor > 0.001;
+  const filasTotales = `
+    <div class="fila${hayFavor ? '' : ' total'}"><span>Total</span><span>$${fmt(d.total)}</span></div>
+    ${hayFavor ? `
+    <div class="fila favor"><span>Saldo a favor</span><span>-$${fmt(d.saldoFavor)}</span></div>
+    <div class="fila total"><span>Restante por liquidar</span><span>$${fmt(d.restante)}</span></div>` : ''}
+  `;
+
+  const cuentaHTML = d.cuenta ? `
+    <div class="ec-cuenta">
+      <div class="titulo">CUENTA BANCARIA PARA SU PAGO</div>
+      <div class="nombre">${d.cuenta.nombreCuenta}</div>
+      ${d.cuenta.banco ? `<div class="reng"><b>Banco:</b> ${d.cuenta.banco}</div>` : ''}
+      ${d.cuenta.sucursal ? `<div class="reng"><b>Suc:</b> ${d.cuenta.sucursal}</div>` : ''}
+      ${d.cuenta.numCuenta ? `<div class="reng"><b>Cuenta:</b> ${d.cuenta.numCuenta}</div>` : ''}
+      ${d.cuenta.clave ? `<div class="reng"><b>Clave:</b> ${d.cuenta.clave}</div>` : ''}
+    </div>` : '';
+
+  return `
+    <h2>ESTADO DE CUENTA</h2>
+    <div class="ec-sub">Cliente: <b>${d.cliente}</b> · Bodega R-56 · ${fechaCorta(d.fecha)}</div>
+    <table>
+      <thead><tr><th>Fecha</th><th>Carro</th><th>Agricultor</th><th>Tamaño</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Subtotal</th></tr></thead>
+      <tbody>${filas}</tbody>
+    </table>
+    <div class="ec-totales">${filasTotales}</div>
+    ${cuentaHTML}
+  `;
+}
+
+// @page no se puede condicionar por clase CSS — se sobreescribe el tamaño
+// de hoja inyectando un <style> temporal justo antes de imprimir (la hoja
+// completa necesita tamaño normal, no los 80mm fijos del comprobante), y se
+// quita al terminar en el evento "afterprint" (dispara también para el
+// comprobante de 80mm; ahí simplemente no encuentra nada que quitar).
+function imprimirEstadoCuenta(d) {
+  document.getElementById('print-area-estado').innerHTML = generarEstadoCuentaHTML(d);
+  const estiloPagina = document.createElement('style');
+  estiloPagina.id = 'estilo-pagina-estado-cuenta';
+  estiloPagina.textContent = '@page { size: auto; margin: 14mm; }';
+  document.head.appendChild(estiloPagina);
+  document.body.classList.add('imprimiendo-estado-cuenta');
+  window.print();
+}
+
+window.addEventListener('afterprint', () => {
+  document.body.classList.remove('imprimiendo-estado-cuenta');
+  const estiloPagina = document.getElementById('estilo-pagina-estado-cuenta');
+  if (estiloPagina) estiloPagina.remove();
 });
 
 // ---------- Sincronización de la cola cuando regresa la señal ----------

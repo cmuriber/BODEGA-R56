@@ -403,6 +403,8 @@
   .seccion-head-creditos {
     display: flex; justify-content: space-between; align-items: baseline; margin: 18px 20px 10px;
   }
+  .seccion-head-acciones { display: flex; align-items: baseline; gap: 16px; }
+  .btn-estado-cuenta { color: var(--tallo); }
 
   .vales-tabla-wrap { margin: 0 20px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow: hidden; }
   .vale-fila {
@@ -520,6 +522,44 @@
     #print-area .tot { font-weight: 700; font-size: 13px; margin-top: 8px; }
   }
 
+  /* ---------- Estado de cuenta impreso (hoja completa, no rollo térmico) ----------
+     Comparte el mismo truco de "área de impresión + visibility" que el
+     comprobante de arriba, pero con su propio tamaño de página — @page no
+     se puede condicionar por clase, así que el tamaño de hoja se
+     sobreescribe inyectando un <style> temporal justo antes de imprimir
+     (ver imprimirEstadoCuenta() en app-creditos.js) y se quita al
+     terminar. body.imprimiendo-estado-cuenta decide cuál de las dos áreas
+     de impresión se muestra. */
+  #print-area-estado { display: none; }
+  body.imprimiendo-estado-cuenta #print-area { display: none !important; }
+  @media print {
+    body.imprimiendo-estado-cuenta #print-area-estado,
+    body.imprimiendo-estado-cuenta #print-area-estado * { visibility: visible; }
+    body.imprimiendo-estado-cuenta #print-area-estado {
+      display: block; position: absolute; left: 0; top: 0; width: 100%;
+      font-family: 'Inter', sans-serif; color: #000; font-size: 12.5px; line-height: 1.45;
+    }
+    body.imprimiendo-estado-cuenta #print-area-estado h2 {
+      font-family: 'Barlow Condensed', sans-serif; font-size: 22px; letter-spacing: 0.4px; margin: 0 0 2px;
+    }
+    #print-area-estado .ec-sub { color: #444; margin-bottom: 14px; }
+    #print-area-estado .ec-sub b { color: #000; }
+    #print-area-estado table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    #print-area-estado th, #print-area-estado td { padding: 5px 7px; text-align: left; font-size: 12px; }
+    #print-area-estado th { background: #1B1917; color: #fff; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.3px; }
+    #print-area-estado td.num, #print-area-estado th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    #print-area-estado tbody tr:nth-child(even) { background: #f4f2ee; }
+    #print-area-estado .ec-totales { margin: 14px 0 0; margin-left: auto; width: 280px; }
+    #print-area-estado .ec-totales .fila { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+    #print-area-estado .ec-totales .fila.total { font-weight: 800; font-size: 16px; background: #ffe58a; padding: 6px 8px; border-radius: 4px; }
+    #print-area-estado .ec-totales .fila.favor { color: #1F6F43; }
+    #print-area-estado .ec-cuenta { margin-top: 40px; border: 1px solid #000; padding: 10px 12px; width: 320px; font-size: 12px; }
+    #print-area-estado .ec-cuenta .titulo { font-weight: 800; letter-spacing: 0.3px; margin-bottom: 6px; }
+    #print-area-estado .ec-cuenta .nombre { font-weight: 700; margin-bottom: 4px; }
+    #print-area-estado .ec-cuenta .reng { display: flex; gap: 6px; }
+    #print-area-estado .ec-cuenta .reng b { min-width: 50px; }
+  }
+
   /* ---------- Layout de 2 columnas en pantallas anchas (mostrador/PC) ----------
      Igual convención que los demás módulos: este bloque va AL FINAL del
      <style> a propósito, para ganarle en cascada a las reglas base de
@@ -609,7 +649,10 @@
         <div id="cliente-panel" hidden>
           <div class="seccion-head-creditos">
             <div class="seccion-titulo" id="cliente-nombre-titulo">—</div>
-            <button class="btn-texto" id="btn-limpiar-cliente" type="button">Cambiar cliente ✕</button>
+            <div class="seccion-head-acciones">
+              <button class="btn-texto btn-estado-cuenta" id="btn-estado-cuenta" type="button">📄 Enviar estado de cuenta</button>
+              <button class="btn-texto" id="btn-limpiar-cliente" type="button">Cambiar cliente ✕</button>
+            </div>
           </div>
 
           <div class="vales-tabla-wrap">
@@ -696,8 +739,31 @@
     </div>
   </div>
 
+  <!-- Modal: elegir cuenta bancaria antes de generar el Estado de Cuenta -->
+  <div class="modal-fondo" id="modal-estado-cuenta" hidden>
+    <div class="modal-caja">
+      <div class="modal-titulo">Estado de cuenta — <span id="estado-cuenta-cliente-nombre"></span></div>
+      <div style="font-size:13px; color:var(--text-dim); margin-bottom:14px;">Compendio de todas las notas pendientes de este cliente (incluye las que ya tienen un abono parcial, mostrando lo que falta por cubrir).</div>
+
+      <div class="campo">
+        <label>Cuenta bancaria para que el cliente haga su pago</label>
+        <select id="estado-cuenta-cuenta-select">
+          <option value="">Seleccionar…</option>
+        </select>
+      </div>
+
+      <div class="campo-error" id="estado-cuenta-error"></div>
+
+      <div class="modal-acciones">
+        <button class="btn-secundario" id="estado-cuenta-cancelar" type="button">Cancelar</button>
+        <button class="btn-primario" id="estado-cuenta-generar" type="button">Generar estado de cuenta</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" hidden></div>
   <div id="print-area"></div>
+  <div id="print-area-estado"></div>
 
   <script src="./app-creditos.js"></script>
 </body>
