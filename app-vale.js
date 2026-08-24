@@ -454,7 +454,7 @@ function totalCajasPartida(p) {
 }
 
 function addPartida() {
-  if (partidas.length >= 5) return;
+  if (partidas.length >= 10) return;
   const p = nuevaPartida();
   partidas.push(p);
   // La partida recién agregada se vuelve la activa — así un clic en el
@@ -482,8 +482,8 @@ function renderPartidas() {
   const container = document.getElementById('partidas-container');
   container.innerHTML = '';
   partidas.forEach((p, idx) => container.appendChild(renderPartidaCard(p, idx)));
-  document.getElementById('partidas-count').textContent = partidas.length + ' de 5';
-  document.getElementById('btn-agregar-partida').disabled = partidas.length >= 5;
+  document.getElementById('partidas-count').textContent = partidas.length + ' de 10';
+  document.getElementById('btn-agregar-partida').disabled = partidas.length >= 10;
   computeTotales();
   renderManifiestoPanel();
 }
@@ -874,7 +874,6 @@ function renderManifiestoPanel() {
   if (!rows) rows = '<tr><td colspan="2" class="manifiesto-vacio-fila">Sin existencias registradas para este carro.</td></tr>';
 
   bodyEl.innerHTML = `
-    <div class="manifiesto-nota">Toca un tamaño para llenar Carro/Agricultor/Invernadero y marcarlo en la <b>partida activa</b> (la resaltada abajo, en Partidas). Cajas, precio y color se capturan aparte.</div>
     <div class="manifiesto-meta">Carro <b>${carro.carro}</b> · Agricultor <b>${carro.agricultor}</b>${carro.esDeHoy ? '' : ' · <span class="badge-later">Abierto (no es de hoy)</span>'}</div>
     <table class="manifiesto-tabla">
       <thead><tr><th>Tamaño</th><th style="text-align:right;">Disponible</th></tr></thead>
@@ -1069,7 +1068,7 @@ function reconstruirPartidasDesdeFilas(filas) {
     grupos[key].tamanos.add(f.tamano);
     grupos[key].cajasPorTamano[f.tamano] = String(f.cajas);
   });
-  return orden.slice(0, 5).map(key => Object.assign(nuevaPartida(), grupos[key]));
+  return orden.slice(0, 10).map(key => Object.assign(nuevaPartida(), grupos[key]));
 }
 
 // ---------- Editar un vale ya guardado ----------
