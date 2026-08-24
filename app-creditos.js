@@ -393,7 +393,7 @@ function renderTodosVales() {
       <span><a class="cliente-link" data-cliente="${v.cliente}" title="Ver las cuentas de ${v.cliente}">${v.cliente}</a></span>
       <span><span class="folio-num ${v.enviadoEstadoCuenta ? 'enviado' : ''}" ${v.enviadoEstadoCuenta ? 'title="Ya se incluyó en un estado de cuenta enviado"' : ''}>${folioStr(v.folio)}</span></span>
       <span>${fechaCorta(v.fecha)}</span>
-      <span>${v.carro}</span>
+      <span>${v.carro}${v.inicialAgricultor ? ` <span class="agricultor-inicial" title="Agricultor">· ${v.inicialAgricultor}</span>` : ''}</span>
       <span class="num">${fmt(v.cantidad)}</span>
       <span class="num">${v.precio === 'varios' || v.precio === 'VARIOS' ? 'varios' : '$' + fmt(v.precio)}</span>
       <span class="num">$${fmt(v.total)}</span>
@@ -446,7 +446,7 @@ function renderVales() {
       <span>${pagado ? '' : `<input type="checkbox" data-folio-check="${v.folio}" ${marcado ? 'checked' : ''}>`}</span>
       <span><span class="folio-num ${v.enviadoEstadoCuenta ? 'enviado' : ''}" ${v.enviadoEstadoCuenta ? 'title="Ya se incluyó en un estado de cuenta enviado"' : ''}>${folioStr(v.folio)}</span></span>
       <span>${fechaCorta(v.fecha)}</span>
-      <span>${v.carro}</span>
+      <span>${v.carro}${v.inicialAgricultor ? ` <span class="agricultor-inicial" title="Agricultor">· ${v.inicialAgricultor}</span>` : ''}</span>
       <span class="num">${fmt(v.cantidad)}</span>
       <span class="num">${v.precio === 'varios' || v.precio === 'VARIOS' ? 'varios' : '$' + fmt(v.precio)}</span>
       <span class="num">$${fmt(v.total)}</span>

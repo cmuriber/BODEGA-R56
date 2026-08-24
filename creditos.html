@@ -415,6 +415,11 @@
   .vale-fila:last-child { border-bottom: none; }
   .vale-fila.head { font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); font-weight: 700; background: rgba(31,111,67,0.04); }
   .vale-fila > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Inicial del agricultor junto a Carro — SOLO en pantalla, para
+     identificar de un vistazo de quién es la nota cuando dos agricultores
+     comparten número de carro. Nunca aparece en el Estado de Cuenta
+     impreso (accionEstadoCuenta ni siquiera manda este dato al frontend). */
+  .agricultor-inicial { color: var(--text-dim); font-weight: 600; }
   .vale-fila .num { text-align: right; font-variant-numeric: tabular-nums; }
   .vale-fila input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
   .vale-fila.pagado { background: rgba(31,111,67,0.05); }
