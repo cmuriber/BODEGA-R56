@@ -204,6 +204,10 @@ let clientesCatalogo = [];    // respuesta de action=clientes
 let vendidoEnEstaSesion = {}; // reserva local: key -> cajas ya asignadas en partidas de ESTE vale (para no sobrevender contra sí mismo antes de guardar)
 let partidas = [];
 let partidaAutoId = 1;
+// Partida "activa" — a la que apuntan los clics en el panel de Manifiesto
+// (consulta). Siempre es una de las partidas visibles; renderPartidas()
+// se asegura de que nunca apunte a una partida que ya no existe.
+let partidaActivaId = null;
 let pendingWarningResolve = null;
 let ventasHoy = []; // acción ventas_dia — solo lectura, para el panel de "Vales guardados"
 let sincronizando = false;
@@ -451,12 +455,18 @@ function totalCajasPartida(p) {
 
 function addPartida() {
   if (partidas.length >= 5) return;
-  partidas.push(nuevaPartida());
+  const p = nuevaPartida();
+  partidas.push(p);
+  // La partida recién agregada se vuelve la activa — así un clic en el
+  // Manifiesto después de "+ Agregar partida" llena la nueva, nunca la
+  // que ya se había llenado antes.
+  partidaActivaId = p.id;
   renderPartidas();
 }
 function removePartida(id) {
   if (partidas.length <= 1) return;
   partidas = partidas.filter(p => p.id !== id);
+  if (partidaActivaId === id) partidaActivaId = partidas[partidas.length - 1].id;
   renderPartidas();
 }
 function getPartida(id) { return partidas.find(p => p.id === id); }
@@ -464,17 +474,25 @@ function getPartida(id) { return partidas.find(p => p.id === id); }
 // ---------- Render: Partidas ----------
 
 function renderPartidas() {
+  // Red de seguridad: si por lo que sea la partida activa ya no existe
+  // (se borró, se recargó el formulario, etc.), se recorre a la última.
+  if (!partidas.find(p => p.id === partidaActivaId)) {
+    partidaActivaId = partidas.length ? partidas[partidas.length - 1].id : null;
+  }
   const container = document.getElementById('partidas-container');
   container.innerHTML = '';
   partidas.forEach((p, idx) => container.appendChild(renderPartidaCard(p, idx)));
   document.getElementById('partidas-count').textContent = partidas.length + ' de 5';
   document.getElementById('btn-agregar-partida').disabled = partidas.length >= 5;
   computeTotales();
+  renderManifiestoPanel();
 }
 
 function renderPartidaCard(p, idx) {
   const wrap = document.createElement('div');
-  wrap.className = 'partida';
+  const esActiva = p.id === partidaActivaId;
+  wrap.className = 'partida' + (esActiva ? ' partida-activa' : '');
+  wrap.dataset.partidaId = p.id;
   const totalCajas = totalCajasPartida(p);
   const total = p.esMerma ? 0 : totalCajas * (Number(p.precio) || 0);
   const multiTamano = p.tamanos.size >= 2;
@@ -489,7 +507,7 @@ function renderPartidaCard(p, idx) {
 
   wrap.innerHTML = `
     <div class="partida-head">
-      <span class="partida-tag">Partida ${idx + 1}</span>
+      <span class="partida-tag">Partida ${idx + 1}${esActiva ? ' · Activa' : ''}</span>
       <div class="partida-head-derecha">
         <label class="chip-check merma ${p.esMerma ? 'checked' : ''}" title="Cierre de carro por merma/muestra/reposición — no se cobra">
           <input type="checkbox" data-merma="1" data-id="${p.id}" ${p.esMerma ? 'checked' : ''}>
@@ -758,7 +776,31 @@ document.getElementById('partidas-container').addEventListener('input', (e) => {
   }
 });
 
+// Marca cuál partida es la "activa" (a la que apuntan los clics del panel
+// de Manifiesto) sin volver a pintar toda la tarjeta — así no se pierde el
+// foco/cursor de un campo que el usuario apenas tocó.
+function marcarPartidaActiva(nuevoId) {
+  if (!nuevoId || nuevoId === partidaActivaId) return;
+  partidaActivaId = nuevoId;
+  document.querySelectorAll('#partidas-container .partida').forEach((el) => {
+    const id = Number(el.dataset.partidaId);
+    const activa = id === partidaActivaId;
+    el.classList.toggle('partida-activa', activa);
+    const tagEl = el.querySelector('.partida-tag');
+    if (tagEl) {
+      const idx = partidas.findIndex(p => p.id === id);
+      tagEl.textContent = `Partida ${idx + 1}${activa ? ' · Activa' : ''}`;
+    }
+  });
+  renderManifiestoPanel();
+}
+document.getElementById('partidas-container').addEventListener('focusin', (e) => {
+  const card = e.target.closest('.partida');
+  if (card) marcarPartidaActiva(Number(card.dataset.partidaId));
+});
 document.getElementById('partidas-container').addEventListener('click', (e) => {
+  const card = e.target.closest('.partida');
+  if (card) marcarPartidaActiva(Number(card.dataset.partidaId));
   const id = e.target.dataset.quitar;
   if (id) removePartida(Number(id));
 });
@@ -806,6 +848,14 @@ function renderManifiestoPanel() {
   // El invernadero (ej. "4 · B · ARACELI") ya no se repite en cada
   // renglón de tamaño — se pone una sola vez como encabezado del grupo y
   // abajo se desglosan sus tamaños, así se lee mejor con varias naves.
+  //
+  // Cada renglón de tamaño es clicable: llena de inmediato Carro/
+  // Agricultor/Invernadero + marca ese Tamaño en la partida ACTIVA (ver
+  // marcarPartidaActiva/partidaActivaId) — nunca en otra partida ya
+  // llenada, para no sobrescribirla por accidente. El renglón que ya
+  // quedó marcado en la partida activa se resalta con ✓ para que se vea
+  // de un vistazo qué falta.
+  const partidaActiva = getPartida(partidaActivaId);
   let rows = '';
   (carro.naves || []).forEach(n => {
     const compuesto = [n.invernadero, n.letra, n.semilla].filter(Boolean).join(' · ');
@@ -814,12 +864,17 @@ function renderManifiestoPanel() {
       const actual = Number(n.disponible && n.disponible[t.param]) || 0;
       let cls = '';
       if (actual < 0) cls = 'negativo'; else if (actual === 0) cls = 'cero'; else if (actual <= 5) cls = 'bajo';
-      rows += `<tr><td>${t.label}</td><td style="text-align:right;"><span class="disp-badge ${cls}">${actual}</span></td></tr>`;
+      const yaEnPartida = !!(partidaActiva && partidaActiva.carroId === carro.id && partidaActiva.naveId === n.id && partidaActiva.tamanos.has(t.param));
+      rows += `<tr class="fila-tamano${yaEnPartida ? ' fila-seleccionada' : ''}" data-nave="${n.id}" data-tam="${t.param}" title="Tocar para llenar la partida activa">
+        <td>${yaEnPartida ? '✓ ' : ''}${t.label}</td>
+        <td style="text-align:right;"><span class="disp-badge ${cls}">${actual}</span></td>
+      </tr>`;
     });
   });
   if (!rows) rows = '<tr><td colspan="2" class="manifiesto-vacio-fila">Sin existencias registradas para este carro.</td></tr>';
 
   bodyEl.innerHTML = `
+    <div class="manifiesto-nota">Toca un tamaño para llenar Carro/Agricultor/Invernadero y marcarlo en la <b>partida activa</b> (la resaltada abajo, en Partidas). Cajas, precio y color se capturan aparte.</div>
     <div class="manifiesto-meta">Carro <b>${carro.carro}</b> · Agricultor <b>${carro.agricultor}</b>${carro.esDeHoy ? '' : ' · <span class="badge-later">Abierto (no es de hoy)</span>'}</div>
     <table class="manifiesto-tabla">
       <thead><tr><th>Tamaño</th><th style="text-align:right;">Disponible</th></tr></thead>
@@ -827,6 +882,52 @@ function renderManifiestoPanel() {
     </table>
   `;
 }
+document.getElementById('manifiesto-body').addEventListener('click', async (e) => {
+  const fila = e.target.closest('tr[data-tam]');
+  if (!fila) return;
+  const carro = getCarro(manifiestoTabActivo);
+  if (!carro) return;
+  const naveId = fila.dataset.nave;
+  const tamParam = fila.dataset.tam;
+
+  // Si no hay partida activa válida (no debería pasar, hay red de
+  // seguridad en renderPartidas), se usa la última.
+  let p = getPartida(partidaActivaId);
+  if (!p) { p = partidas[partidas.length - 1]; partidaActivaId = p.id; }
+  if (!p) return;
+
+  const cambiaCarroONave = p.carroId !== carro.id || p.naveId !== naveId;
+  p.carroNumero = carro.carro;
+  p.carroId = carro.id;
+  p.naveId = naveId;
+
+  if (p.tamanos.has(tamParam)) {
+    // Ya estaba marcado en esta partida: un segundo toque lo quita, igual
+    // que destildar el checkbox de Tamaño a mano.
+    if (p.tamanos.size === 1) p.cajasPendiente = p.cajasPorTamano[tamParam] ?? '';
+    p.tamanos.delete(tamParam);
+    delete p.cajasPorTamano[tamParam];
+    p.overrideTamanos.delete(tamParam);
+  } else {
+    p.tamanos.add(tamParam);
+    if (p.tamanos.size === 1 && p.cajasPendiente) {
+      p.cajasPorTamano[tamParam] = p.cajasPendiente;
+      p.cajasPendiente = '';
+    } else if (!(tamParam in p.cajasPorTamano)) {
+      p.cajasPorTamano[tamParam] = '';
+    }
+  }
+
+  if (cambiaCarroONave) {
+    p.overrideTamanos.clear();
+    await validarTodosLosTamanos(p);
+  } else if (p.tamanos.has(tamParam)) {
+    await validarInventarioTamano(p, tamParam);
+  }
+
+  rebuildCard(p);
+  renderManifiestoPanel();
+});
 document.getElementById('manifiesto-tabs').addEventListener('click', (e) => {
   const id = e.target.dataset.tab;
   if (id) { manifiestoTabActivo = id; renderManifiestoPanel(); }
