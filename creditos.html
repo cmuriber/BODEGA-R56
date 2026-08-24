@@ -423,6 +423,14 @@
     background: rgba(183,121,31,0.15); color: var(--dorado-dim);
   }
   .status-badge.pagado { background: rgba(31,111,67,0.15); color: var(--tallo); }
+  /* Folio "iluminado" — mismo gesto que Mauricio ya hacía a mano en su
+     Excel: en cuanto un folio queda incluido en un Estado de Cuenta que se
+     mandó, se resalta en amarillo (solo el número de folio, no toda la
+     fila — la fila completa se reserva para cuando ya quedó pagado). */
+  .folio-num.enviado {
+    background: #ffe066; color: #4a3b00; font-weight: 700;
+    border-radius: 5px; padding: 2px 6px; display: inline-block;
+  }
   .vales-vacio { padding: 26px 14px; text-align: center; color: var(--text-dim); font-size: 13.5px; }
 
   /* ---------- Columna "Aplicado" — a qué pago(s) se le cargó este vale ----------

@@ -377,7 +377,7 @@ function renderTodosVales() {
     return `
     <div class="vale-fila-todos ${pagado ? 'pagado' : ''}" data-folio="${v.folio}">
       <span><a class="cliente-link" data-cliente="${v.cliente}" title="Ver las cuentas de ${v.cliente}">${v.cliente}</a></span>
-      <span>${folioStr(v.folio)}</span>
+      <span><span class="folio-num ${v.enviadoEstadoCuenta ? 'enviado' : ''}" ${v.enviadoEstadoCuenta ? 'title="Ya se incluyó en un estado de cuenta enviado"' : ''}>${folioStr(v.folio)}</span></span>
       <span>${fechaCorta(v.fecha)}</span>
       <span>${v.carro}</span>
       <span class="num">${fmt(v.cantidad)}</span>
@@ -430,7 +430,7 @@ function renderVales() {
     return `
     <div class="vale-fila ${pagado ? 'pagado' : ''}" data-folio="${v.folio}">
       <span>${pagado ? '' : `<input type="checkbox" data-folio-check="${v.folio}" ${marcado ? 'checked' : ''}>`}</span>
-      <span>${folioStr(v.folio)}</span>
+      <span><span class="folio-num ${v.enviadoEstadoCuenta ? 'enviado' : ''}" ${v.enviadoEstadoCuenta ? 'title="Ya se incluyó en un estado de cuenta enviado"' : ''}>${folioStr(v.folio)}</span></span>
       <span>${fechaCorta(v.fecha)}</span>
       <span>${v.carro}</span>
       <span class="num">${fmt(v.cantidad)}</span>
