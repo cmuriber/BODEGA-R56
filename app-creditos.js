@@ -287,14 +287,14 @@ async function cargarCuentas() {
     if (guardado) { try { cuentasCatalogo = JSON.parse(guardado); } catch (e) {} }
   }
   poblarSelectCuentas('pago-cuenta-select');
-  poblarSelectCuentas('estado-cuenta-cuenta-select');
+  poblarSelectCuentas('estado-cuenta-cuenta-select', 'Sin cuenta — pago en efectivo');
 }
 
-function poblarSelectCuentas(selectId = 'pago-cuenta-select') {
+function poblarSelectCuentas(selectId = 'pago-cuenta-select', etiquetaVacia = 'Seleccionar…') {
   const sel = document.getElementById(selectId);
   if (!sel) return;
   const actual = sel.value;
-  sel.innerHTML = '<option value="">Seleccionar…</option>' +
+  sel.innerHTML = `<option value="">${etiquetaVacia}</option>` +
     cuentasCatalogo.map(c => `<option value="${c.id}">${c.agricultor} — ${c.nombreCuenta}</option>`).join('');
   if (actual) sel.value = actual;
 }
@@ -479,7 +479,7 @@ function detalleAplicaciones(v, prefijoId) {
   if (!v.aplicaciones || v.aplicaciones.length === 0) return '';
   const filas = v.aplicaciones.map(a => `
     <div class="aplicacion-fila">
-      <span class="meta">${fechaCorta(a.fecha)} · ${FORMA_LABELS[a.forma] || a.forma || '—'}</span>
+      <span class="meta">${fechaCorta(a.fecha)} · ${FORMA_LABELS[a.forma] || a.forma || '—'}${a.cuentaNombre ? ' — ' + a.cuentaNombre : ''}</span>
       <span class="aplicacion-derecha">
         <span class="monto">$${fmt(a.monto)}</span>
         <button type="button" class="quitar-aplicacion-btn" data-quitar-aplicacion="${a.id}" data-folio="${v.folio}" title="Quitar este pago aplicado (no borra el pago, solo lo regresa a pendiente por aplicar)">Quitar pago</button>
@@ -790,10 +790,11 @@ document.getElementById('estado-cuenta-cancelar').addEventListener('click', () =
 });
 
 document.getElementById('estado-cuenta-generar').addEventListener('click', async () => {
+  // La cuenta es opcional: si el cliente va a pagar en efectivo, se deja
+  // "Seleccionar…" y el estado de cuenta sale sin datos bancarios.
   const cuentaId = document.getElementById('estado-cuenta-cuenta-select').value;
   const errorBox = document.getElementById('estado-cuenta-error');
   errorBox.textContent = '';
-  if (!cuentaId) { errorBox.textContent = 'Selecciona a qué cuenta le va a hacer el pago el cliente.'; return; }
   if (!clienteActivo) return;
   const boton = document.getElementById('estado-cuenta-generar');
   const textoOriginal = boton.textContent;
