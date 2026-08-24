@@ -165,6 +165,17 @@ function fechaCorta(f) {
   if (partes.length !== 3) return f;
   return `${partes[2]}/${partes[1]}`;
 }
+const MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+// Fecha larga en español ("24 de agosto de 2026") — usada en el
+// encabezado del Estado de Cuenta impreso.
+function fechaLarga(f) {
+  if (!f) return '';
+  const partes = String(f).split('-');
+  if (partes.length !== 3) return f;
+  const [y, m, d] = partes;
+  const mes = MESES_LARGOS[Number(m) - 1] || m;
+  return `${Number(d)} de ${mes} de ${y}`;
+}
 const FORMA_LABELS = { efectivo: 'Efectivo', transferencia: 'Transferencia', cheque: 'Cheque' };
 
 // ---------- Estado en memoria ----------
@@ -860,8 +871,16 @@ function generarEstadoCuentaHTML(d) {
     </div>` : '';
 
   return `
-    <h2>ESTADO DE CUENTA</h2>
-    <div class="ec-sub">Cliente: <b>${d.cliente}</b> · Bodega R-56 · ${fechaCorta(d.fecha)}</div>
+    <div class="ec-header">
+      <div>
+        <h2>ESTADO DE CUENTA</h2>
+        <div class="ec-sub">Cliente: <b>${d.cliente}</b> · Bodega R-56 · Tomates de Invernadero</div>
+      </div>
+      <div class="ec-fecha">
+        <div class="ec-fecha-label">Fecha</div>
+        <div class="ec-fecha-valor">${fechaLarga(d.fecha)}</div>
+      </div>
+    </div>
     <table>
       <thead><tr><th>Fecha</th><th>Carro</th><th>Tamaño</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Subtotal</th></tr></thead>
       <tbody>${filas}</tbody>
