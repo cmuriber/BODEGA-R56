@@ -820,7 +820,6 @@ function generarEstadoCuentaHTML(d) {
     <tr>
       <td>${fechaCorta(p.fecha)}</td>
       <td>${p.carro || ''}</td>
-      <td>${p.agricultor || ''}</td>
       <td>${p.tamano || ''}</td>
       <td class="num">${fmt(p.cajas)}</td>
       <td class="num">$${fmt(p.precio)}</td>
@@ -849,7 +848,7 @@ function generarEstadoCuentaHTML(d) {
     <h2>ESTADO DE CUENTA</h2>
     <div class="ec-sub">Cliente: <b>${d.cliente}</b> · Bodega R-56 · ${fechaCorta(d.fecha)}</div>
     <table>
-      <thead><tr><th>Fecha</th><th>Carro</th><th>Agricultor</th><th>Tamaño</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Subtotal</th></tr></thead>
+      <thead><tr><th>Fecha</th><th>Carro</th><th>Tamaño</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Subtotal</th></tr></thead>
       <tbody>${filas}</tbody>
     </table>
     <div class="ec-totales">${filasTotales}</div>
