@@ -340,6 +340,16 @@ function renderCuentaDetalle(c) {
     ? '<div class="cuenta-sin-ronda" style="margin:8px 0;">Esta cuenta todavía no ha tenido ninguna asignación de monto.</div>'
     : c.rondas.map(r => renderRondaFila(r)).join('');
 
+  // Las rondas cerradas de más de 6 meses no se borran — solo se dejan de
+  // mostrar aquí (mismo criterio que Créditos) — este aviso deja claro
+  // que hay historia real que no se está viendo, para que no parezca que
+  // se perdió algo.
+  const avisoOcultas = c.rondasOcultasPorAntiguedad > 0 ? `
+    <div class="aviso-rondas-ocultas">
+      + ${c.rondasOcultasPorAntiguedad} ronda${c.rondasOcultasPorAntiguedad === 1 ? '' : 's'} cerrada${c.rondasOcultasPorAntiguedad === 1 ? '' : 's'} de hace más de 6 meses (no se muestra${c.rondasOcultasPorAntiguedad === 1 ? '' : 'n'} aquí, pero sigue${c.rondasOcultasPorAntiguedad === 1 ? '' : 'n'} en el Sheet).
+    </div>
+  ` : '';
+
   const btnNuevoMonto = esAdminActual ? `
     <button class="btn-chico dorado btn-nuevo-monto" data-nuevo-monto="${c.id}" type="button">+ Nuevo monto</button>
   ` : '';
@@ -350,6 +360,7 @@ function renderCuentaDetalle(c) {
     ${avisoSinRonda}
     <div class="rondas-titulo">Historial de asignaciones</div>
     ${rondasHtml}
+    ${avisoOcultas}
     ${btnNuevoMonto}
   `;
 }
