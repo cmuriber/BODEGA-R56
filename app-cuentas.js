@@ -254,6 +254,11 @@ async function cargarArbol() {
 // vez que se refresca el árbol después de guardar algo.
 const cuentasExpandidas = new Set();
 
+// Igual, pero para el desglose de pagos debajo de "Ingresado" en cada
+// ronda (o en el aviso de "sin ronda") — guarda por rondaId, o por
+// "sinronda-<cuentaId>" cuando no hay ronda abierta.
+const ingresadoExpandido = new Set();
+
 function renderArbol() {
   const cont = document.getElementById('cuentas-lista');
   cuentasIndice = {};
@@ -322,10 +327,13 @@ function renderCuentaDetalle(c) {
     </div>
   ` : '';
 
+  const claveSinRonda = `sinronda-${c.id}`;
   const avisoSinRonda = c.sinRonda ? `
     <div class="aviso-sin-ronda">
       Esta cuenta ya está recibiendo pagos pero aún no tiene un monto asignado.
+      <span class="ingresado-toggle" data-toggle-ingresado="${claveSinRonda}">Ver pagos <span class="chevron-ing ${ingresadoExpandido.has(claveSinRonda) ? 'abierto' : ''}">▾</span></span>
     </div>
+    ${renderDesglosePagos(claveSinRonda, c.sinRonda.pagosIngresado)}
   ` : '';
 
   const rondasHtml = c.rondas.length === 0
@@ -360,6 +368,8 @@ function renderRondaFila(r) {
     </div>
   ` : '';
 
+  const claveDesglose = `ronda-${r.id}`;
+
   return `
     <div class="ronda-fila ${r.abierta ? 'abierta' : ''} ${r.sobreTope ? 'sobretope' : ''}">
       <div class="ronda-cabecera">
@@ -367,12 +377,48 @@ function renderRondaFila(r) {
         ${estadoBadge}
       </div>
       <div class="ronda-numeros">
-        <div class="ronda-numero"><div class="etq">Ingresado</div><div class="val">$${fmt(r.ingresado)}</div></div>
+        <div class="ronda-numero">
+          <div class="etq">Ingresado</div>
+          <div class="val ingresado-toggle" data-toggle-ingresado="${claveDesglose}">$${fmt(r.ingresado)} <span class="chevron-ing ${ingresadoExpandido.has(claveDesglose) ? 'abierto' : ''}">▾</span></div>
+        </div>
         <div class="ronda-numero"><div class="etq">Asignado</div><div class="val">$${fmt(r.asignado)}</div></div>
         <div class="ronda-numero"><div class="etq">Resta</div><div class="val ${restaClase}">$${fmt(r.resta)}</div></div>
         <div class="ronda-numero"><div class="etq">Tope</div><div class="val">$${fmt(r.tope)}</div></div>
       </div>
+      ${renderDesglosePagos(claveDesglose, r.pagosIngresado)}
       ${acciones}
+    </div>
+  `;
+}
+
+// Tabla plegable con el detalle de los pagos que forman un "Ingresado" —
+// se usa tanto debajo de cada ronda como en el aviso de "sin ronda". El
+// status de factura todavía no existe como dato real (llega con el
+// módulo de Facturación) — por ahora se muestra siempre "Pendiente".
+function renderDesglosePagos(clave, lista) {
+  const expandido = ingresadoExpandido.has(clave);
+  const filas = (lista && lista.length)
+    ? lista.map(p => `
+        <div class="desglose-fila">
+          <span class="desglose-cliente">${p.cliente}</span>
+          <span class="desglose-monto">$${fmt(p.monto)}</span>
+          <span class="desglose-fecha">${fechaCorta(p.fecha)}</span>
+          <span class="desglose-fecha">${fechaCorta(p.fechaContable)}</span>
+          <span class="desglose-status">Pendiente</span>
+        </div>
+      `).join('')
+    : '<div class="desglose-vacio">Sin pagos todavía.</div>';
+
+  return `
+    <div class="desglose-ingresado" ${expandido ? '' : 'hidden'}>
+      <div class="desglose-fila desglose-header">
+        <span>Cliente</span>
+        <span>Monto</span>
+        <span>Fecha ingreso</span>
+        <span>Fecha contable</span>
+        <span>Factura</span>
+      </div>
+      ${filas}
     </div>
   `;
 }
@@ -393,6 +439,14 @@ document.getElementById('cuentas-lista').addEventListener('click', async (e) => 
 
   const nuevoMontoBtn = e.target.closest('[data-nuevo-monto]');
   if (nuevoMontoBtn) { abrirModalRonda(nuevoMontoBtn.dataset.nuevoMonto); return; }
+
+  const toggleIngresado = e.target.closest('[data-toggle-ingresado]');
+  if (toggleIngresado) {
+    const clave = toggleIngresado.dataset.toggleIngresado;
+    if (ingresadoExpandido.has(clave)) ingresadoExpandido.delete(clave); else ingresadoExpandido.add(clave);
+    renderArbol();
+    return;
+  }
 
   const cerrarBtn = e.target.closest('[data-cerrar-ronda]');
   if (cerrarBtn) {
