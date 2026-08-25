@@ -375,7 +375,7 @@ function renderRondaFila(r) {
     <div class="ronda-acciones">
       ${r.abierta
         ? `<button class="btn-chico" data-cerrar-ronda="${r.id}" type="button">Cerrar ronda</button>`
-        : `<button class="btn-chico" data-reabrir-ronda="${r.id}" data-reabrir-fecha="${r.fechaInicio}" type="button">Reabrir ronda</button>`}
+        : `<button class="btn-chico" data-reabrir-ronda="${r.id}" data-reabrir-fecha="${r.fechaInicio}" data-reabrir-tope="${r.tope}" type="button">Reabrir ronda</button>`}
     </div>
   ` : '';
 
@@ -481,17 +481,25 @@ document.getElementById('cuentas-lista').addEventListener('click', async (e) => 
   if (reabrirBtn) {
     const rondaId = reabrirBtn.dataset.reabrirRonda;
     const fechaActual = reabrirBtn.dataset.reabrirFecha || '';
-    // Permite ajustar la fecha de inicio al reabrir — por si la cuenta se
-    // reactiva para un periodo nuevo en vez de continuar el anterior. Si
-    // se deja igual, no cambia nada.
+    const topeActual = reabrirBtn.dataset.reabrirTope || '';
+    // Permite ajustar la fecha de inicio y el tope al reabrir — por si la
+    // cuenta se reactiva para un periodo nuevo, o el agricultor autorizó
+    // un monto máximo distinto al que tenía antes de cerrarse. Si se deja
+    // todo igual, no cambia nada.
     const nuevaFecha = prompt('¿Reabrir esta ronda? Puedes ajustar su fecha de inicio (los pagos desde esa fecha se le sumarán). Déjala igual si no cambia.', fechaActual);
     if (nuevaFecha === null) return;
+    const nuevoTopeTexto = prompt('¿Cambiar el tope? Déjalo igual si no cambia.', topeActual);
+    if (nuevoTopeTexto === null) return;
     reabrirBtn.disabled = true;
     try {
       let url = `${APPS_SCRIPT_URL}?action=cuenta_ronda_reabrir&token=${encodeURIComponent(tokenActual)}&rondaId=${encodeURIComponent(rondaId)}`;
       const fechaLimpia = nuevaFecha.trim();
       if (fechaLimpia && fechaLimpia !== fechaActual && /^\d{4}-\d{2}-\d{2}$/.test(fechaLimpia)) {
         url += `&fechaInicio=${encodeURIComponent(fechaLimpia)}`;
+      }
+      const nuevoTope = Number(nuevoTopeTexto);
+      if (nuevoTopeTexto.trim() && nuevoTope > 0 && String(nuevoTope) !== String(topeActual)) {
+        url += `&tope=${encodeURIComponent(nuevoTope)}`;
       }
       const data = await llamarJSONP(url);
       if (!data.ok) { mostrarToast(data.error || 'No se pudo reabrir la ronda.', 'error'); return; }
