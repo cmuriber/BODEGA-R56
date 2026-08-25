@@ -324,7 +324,7 @@ function renderCuentaDetalle(c) {
 
   const avisoSinRonda = c.sinRonda ? `
     <div class="aviso-sin-ronda">
-      🟠 Esta cuenta ya está recibiendo pagos (Ingresado $${fmt(c.sinRonda.ingresado)}${c.sinRonda.asignado ? ` · Asignado $${fmt(c.sinRonda.asignado)}` : ''}) aunque todavía no tiene tope. El dinero se sigue sumando solo — abre una ronda con "+ Nuevo monto" cuando quieras ponerle tope y fecha de inicio formal.
+      Esta cuenta ya está recibiendo pagos pero aún no tiene un monto asignado.
     </div>
   ` : '';
 
