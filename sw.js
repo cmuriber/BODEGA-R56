@@ -4,7 +4,7 @@
 // con IndexedDB (ver app.js, app-manifiesto.js, app-vale.js y
 // app-creditos.js).
 
-const CACHE_NAME = 'r56-dashboard-v31';
+const CACHE_NAME = 'r56-dashboard-v32';
 const SHELL_FILES = [
   './index.html',
   './app.js',
@@ -14,6 +14,8 @@ const SHELL_FILES = [
   './app-vale.js',
   './creditos.html',
   './app-creditos.js',
+  './cuentas.html',
+  './app-cuentas.js',
   './manifest.json',
   './icon.svg'
 ];

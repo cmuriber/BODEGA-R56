@@ -265,12 +265,75 @@ async function iniciarSesionConToken(token, nombre) {
   mostrarDashboard();
   const usuarioChip = document.getElementById('usuario-chip');
   if (usuarioChip) usuarioChip.textContent = usuarioNombre || '';
+
+  // Mismo patrón "local primero, Sheets en segundo plano" que ya usan los
+  // demás módulos — pinta de inmediato con el último árbol de Cuentas
+  // guardado en este dispositivo (comparte la misma llave de localStorage
+  // que la pantalla de Cuentas, así que si esa pantalla ya se abrió antes
+  // en este dispositivo, el Dashboard también aprovecha ese caché).
+  try {
+    const guardado = localStorage.getItem('r56-cuentas-arbol');
+    if (guardado) {
+      const data = JSON.parse(guardado);
+      pintarCuentasActivas(data.cuentasAbiertas || []);
+    }
+  } catch (err) {}
+
   await cargarDashboard();
+  cargarCuentasActivas();
 
   if (temporizadorRefresco) clearInterval(temporizadorRefresco);
   // Refresca solo cada 20 segundos en automático — se siente casi en
   // tiempo real sin exagerar las llamadas al backend.
-  temporizadorRefresco = setInterval(cargarDashboard, 20000);
+  temporizadorRefresco = setInterval(() => { cargarDashboard(); cargarCuentasActivas(); }, 20000);
+}
+
+// ---------- Cuentas con asignación activa (replicado desde la pantalla de Cuentas) ----------
+// Solo se llama a "cuentas_arbol" y se usa "cuentasAbiertas" (aplanado,
+// solo las cuentas con ronda abierta) — el Dashboard no necesita el árbol
+// completo ni los datos bancarios.
+
+async function cargarCuentasActivas() {
+  try {
+    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=cuentas_arbol&token=${encodeURIComponent(tokenActual)}`);
+    if (data.error === 'no_autorizado') return; // cargarDashboard() ya maneja la sesión vencida
+    if (!data.ok) return;
+    pintarCuentasActivas(data.cuentasAbiertas || []);
+    try {
+      const anterior = localStorage.getItem('r56-cuentas-arbol');
+      const arbol = anterior ? JSON.parse(anterior).arbol : [];
+      localStorage.setItem('r56-cuentas-arbol', JSON.stringify({ arbol: arbol, esAdmin: !!data.esAdmin, cuentasAbiertas: data.cuentasAbiertas || [] }));
+    } catch (err) {}
+  } catch (err) {
+    // Sin conexión: se queda con lo último pintado (del caché local o de
+    // la última vez que sí respondió), sin mostrar error — este bloque es
+    // secundario al Dashboard principal.
+  }
+}
+
+function pintarCuentasActivas(cuentas) {
+  const lista = document.getElementById('cuentas-activas-lista');
+  if (!lista) return;
+  if (cuentas.length === 0) {
+    lista.innerHTML = '<li class="vacio">Ninguna cuenta tiene una asignación activa ahorita.</li>';
+    return;
+  }
+  lista.innerHTML = cuentas.map(c => `
+    <li class="cuenta-activa-item ${c.sobreTope ? 'sobretope' : ''}">
+      <div class="cuenta-activa-cabecera">
+        <div>
+          <span class="cuenta-activa-nombre">${c.nombreCuenta}</span>
+          <span class="cuenta-activa-agricultor">· ${c.agricultor}</span>
+        </div>
+        ${c.sobreTope ? '<span class="cuenta-activa-alerta">⚠ Sobre el tope</span>' : ''}
+      </div>
+      <div class="cuenta-activa-numeros">
+        <span>Ingresado <b>${fmtDinero(c.ingresado)}</b></span>
+        <span>Asignado <b>${fmtDinero(c.asignado)}</b></span>
+        <span>Tope <b>${fmtDinero(c.tope)}</b></span>
+      </div>
+    </li>
+  `).join('');
 }
 
 document.getElementById('login-form').addEventListener('submit', async (ev) => {

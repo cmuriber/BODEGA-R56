@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6f43">
+<title>Bodega R-56 — Cuentas</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3f5f4;
+    --card: #ffffff;
+    --card-border: #dfe4e1;
+    --tomate: #c0392b;
+    --tomate-dim: #96301f;
+    --tallo: #1f6f43;
+    --ambar: #b7791f;
+    --dorado: #b7791f;
+    --dorado-dim: #8a6a1f;
+    --text: #202824;
+    --text-dim: #667a70;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(24px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Login (idéntico a los demás módulos) ---------- */
+  #login-view {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(183,121,31,0.06), transparent 60%),
+      var(--bg);
+  }
+  #login-view[hidden] { display: none; }
+
+  .login-card {
+    width: 100%;
+    max-width: 360px;
+    background: linear-gradient(165deg, #ffffff 0%, #fafbfa 100%);
+    border: 1px solid rgba(183,121,31,0.25);
+    border-radius: 18px;
+    padding: 36px 28px 28px;
+    position: relative;
+    box-shadow: 0 12px 32px rgba(23,85,52,0.12), 0 2px 8px rgba(23,85,52,0.08);
+  }
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 56px; height: 3px;
+    border-radius: 0 0 4px 4px;
+    background: linear-gradient(90deg, var(--dorado-dim), var(--dorado));
+  }
+
+  .login-eyebrow {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--dorado);
+    text-align: center;
+    font-weight: 700;
+  }
+  .login-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 30px;
+    font-weight: 700;
+    text-align: center;
+    margin: 6px 0 4px;
+    color: var(--text);
+  }
+  .login-sub {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 26px;
+  }
+
+  .login-field { margin-bottom: 16px; }
+  .login-field label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .login-field input {
+    width: 100%;
+    background: #fafbfa;
+    border: 1px solid rgba(183,121,31,0.2);
+    border-radius: 10px;
+    padding: 13px 14px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  .login-field input:focus {
+    outline: none;
+    border-color: var(--dorado);
+  }
+
+  #login-error {
+    color: #c0392b;
+    font-size: 13px;
+    text-align: center;
+    margin: -4px 0 14px;
+    min-height: 16px;
+  }
+
+  button#login-submit {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1f6f43, #175534);
+    color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  button#login-submit:disabled { opacity: 0.6; }
+
+  /* ---------- Barra superior (idéntico patrón a los demás módulos) ---------- */
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px 20px 8px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .marca {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .titulo-modulo { font-size: 18px; font-weight: 600; margin-top: 4px; }
+
+  .top-acciones { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .top-acciones-fila { display: flex; align-items: center; gap: 10px; }
+  .top-acciones a, .top-acciones button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 13px;
+    padding: 6px 0;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .modulos-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .modulos-nav .modulo-link {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--text-dim);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 7px 14px;
+    white-space: nowrap;
+    cursor: default;
+  }
+  .modulos-nav a.modulo-link { cursor: pointer; }
+  .modulos-nav a.modulo-link:hover { border-color: var(--tallo); color: var(--tallo); }
+  .modulos-nav .modulo-link.activo { background: var(--tallo); border-color: var(--tallo); color: #fff; }
+
+  .usuario-chip {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .usuario-chip::before { content: '👤 '; }
+
+  #error-box {
+    margin: 16px 20px 0;
+    padding: 10px 14px;
+    background: rgba(183, 121, 31, 0.15);
+    border: 1px solid var(--ambar);
+    color: var(--ambar);
+    font-size: 13px;
+    border-radius: 10px;
+  }
+  #error-box[hidden] { display: none; }
+
+  .seccion-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 19px;
+  }
+
+  .btn-primario {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--tomate), var(--tomate-dim));
+    color: #FFF8F0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .btn-primario:disabled { opacity: 0.45; cursor: default; }
+  .btn-secundario {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn-texto {
+    background: none;
+    border: none;
+    color: var(--dorado);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 0;
+  }
+  .btn-peligro {
+    background: transparent; border: 1px solid var(--tomate); color: var(--tomate-dim);
+    border-radius: 10px; padding: 7px 11px; font-size: 12px; font-weight: 700; cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-peligro:hover { background: rgba(192,57,43,0.08); }
+  .btn-chico {
+    background: transparent; border: 1px solid var(--card-border); color: var(--text);
+    border-radius: 10px; padding: 7px 11px; font-size: 12px; font-weight: 700; cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-chico:hover { border-color: var(--tallo); color: var(--tallo); }
+  .btn-chico.dorado { border-color: var(--dorado); color: var(--dorado-dim); }
+  .btn-chico.dorado:hover { background: rgba(183,121,31,0.1); }
+
+  .admin-chip {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ambar); border: 1px solid var(--ambar); border-radius: 20px; padding: 3px 9px;
+    background: rgba(183,121,31,0.1);
+  }
+  .admin-chip[hidden] { display: none; }
+
+  /* ---------- Modal genérico (idéntico a los demás módulos) ---------- */
+  .modal-fondo {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: flex-end;
+    z-index: 50;
+  }
+  .modal-fondo[hidden] { display: none; }
+  .modal-caja {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg);
+    border-radius: 20px 20px 0 0;
+    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
+    max-height: 92vh;
+    overflow-y: auto;
+    border-top: 1px solid rgba(183,121,31,0.25);
+  }
+  .modal-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  .modal-sub { font-size: 12.5px; color: var(--text-dim); margin: -4px 0 14px; }
+  .campo { margin-bottom: 12px; position: relative; }
+  .campo label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .campo select, .campo input[type=text], .campo input[type=number], .campo input[type=date] {
+    width: 100%;
+    background: #fafbfa;
+    border: 1px solid var(--card-border);
+    border-radius: 9px;
+    padding: 10px 11px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  .campo select:focus, .campo input:focus { outline: none; border-color: var(--dorado); }
+  .campo[hidden] { display: none; }
+  .campo-2col { display: flex; gap: 10px; }
+  .campo-2col > .campo { flex: 1; }
+
+  .campo-error { color: #c0392b; font-size: 13px; min-height: 16px; margin: -4px 0 8px; }
+
+  .modal-acciones { display: flex; gap: 10px; margin-top: 6px; }
+  .modal-acciones .btn-secundario, .modal-acciones .btn-primario { flex: 1; }
+
+  /* ---------- Aviso flotante ---------- */
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(30px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    max-width: calc(100% - 40px);
+    background: var(--tallo);
+    color: #fafbfa;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: center;
+    padding: 10px 18px;
+    border-radius: 20px;
+    z-index: 60;
+    box-shadow: 0 8px 24px rgba(23,85,52,0.14);
+  }
+  #toast[hidden] { display: none; }
+  #toast.toast--pendiente { background: var(--ambar); }
+  #toast.toast--error { background: var(--tomate); }
+
+  /* ---------- Módulo Cuentas ---------- */
+
+  .cuentas-head {
+    margin: 16px 20px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .cuentas-head .btn-texto { white-space: nowrap; }
+  .cuentas-vacio { padding: 30px 20px; text-align: center; color: var(--text-dim); font-size: 13.5px; }
+
+  .agricultor-grupo { margin: 0 20px 22px; }
+  .agricultor-titulo {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px;
+    letter-spacing: 0.04em; text-transform: uppercase; color: var(--tallo);
+    padding-bottom: 6px; margin-bottom: 8px; border-bottom: 2px solid rgba(31,111,67,0.18);
+  }
+
+  .cuenta-card {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
+    margin-bottom: 10px; overflow: hidden;
+  }
+  .cuenta-card.inactiva { opacity: 0.55; }
+  .cuenta-cabecera {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 13px 14px; cursor: pointer;
+  }
+  .cuenta-cabecera:hover { background: rgba(31,111,67,0.03); }
+  .cuenta-nombre { font-weight: 700; font-size: 14.5px; }
+  .cuenta-nombre .inactiva-tag { font-weight: 600; color: var(--tomate-dim); font-size: 10.5px; text-transform: uppercase; margin-left: 6px; }
+  .cuenta-resumen { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  .cuenta-resumen-dato { font-size: 11.5px; color: var(--text-dim); text-align: right; }
+  .cuenta-resumen-dato b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .cuenta-sin-ronda { font-size: 11.5px; color: var(--text-dim); font-style: italic; }
+  .chevron { color: var(--text-dim); font-size: 12px; transition: transform 0.15s; }
+  .cuenta-card.expandida .chevron { transform: rotate(90deg); }
+
+  .badge-alerta {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+    color: #fff; background: var(--tomate); border-radius: 999px; padding: 3px 9px; white-space: nowrap;
+  }
+  .badge-abierta {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+    color: var(--tallo); background: rgba(31,111,67,0.12); border-radius: 999px; padding: 3px 9px; white-space: nowrap;
+  }
+  .badge-cerrada {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+    color: var(--text-dim); background: rgba(102,122,112,0.12); border-radius: 999px; padding: 3px 9px; white-space: nowrap;
+  }
+
+  .cuenta-detalle { padding: 4px 14px 16px; border-top: 1px solid var(--card-border); display: none; }
+  .cuenta-card.expandida .cuenta-detalle { display: block; }
+
+  .cuenta-datos-banco {
+    margin-top: 12px; padding: 10px 12px; background: #fafbfa; border: 1px solid var(--card-border);
+    border-radius: 10px; font-size: 12.5px;
+  }
+  .cuenta-datos-banco .dato-fila { display: flex; gap: 8px; padding: 2px 0; }
+  .cuenta-datos-banco .dato-fila b { min-width: 90px; color: var(--text-dim); font-weight: 600; }
+  .cuenta-datos-banco .dato-oculto { color: var(--text-dim); font-style: italic; font-size: 12px; }
+  .cuenta-acciones-fila { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+  .rondas-titulo {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim);
+    font-weight: 700; margin: 16px 0 6px;
+  }
+  .ronda-fila {
+    border: 1px solid var(--card-border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+    background: #fff;
+  }
+  .ronda-fila.abierta { border-color: rgba(31,111,67,0.35); background: rgba(31,111,67,0.03); }
+  .ronda-fila.sobretope { border-color: rgba(192,57,43,0.4); background: rgba(192,57,43,0.04); }
+  .ronda-cabecera { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .ronda-fecha { font-size: 12px; color: var(--text-dim); }
+  .ronda-fecha b { color: var(--text); }
+  .ronda-numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .ronda-numero { text-align: center; }
+  .ronda-numero .etq { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); }
+  .ronda-numero .val { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .ronda-numero .val.negativo { color: var(--tomate-dim); }
+  .ronda-numero .val.positivo { color: var(--tallo); }
+  .ronda-acciones { display: flex; gap: 8px; margin-top: 8px; }
+
+  .btn-nuevo-monto { margin-top: 4px; }
+
+  #cuentas-lista[hidden] { display: none; }
+
+  /* ---------- Layout ancho en PC (mismo criterio que los demás módulos) ---------- */
+  @media (min-width: 860px) {
+    body { max-width: 900px; }
+    .ronda-numeros { grid-template-columns: repeat(4, minmax(90px, 1fr)); max-width: 480px; }
+  }
+</style>
+</head>
+<body>
+
+  <section id="login-view">
+    <form class="login-card" id="login-form">
+      <div class="login-eyebrow">Sistema · Acceso</div>
+      <div class="login-title">Bienvenido</div>
+      <div class="login-sub">Ingresa tus credenciales para continuar</div>
+
+      <div class="login-field">
+        <label for="login-usuario">Usuario</label>
+        <input type="text" id="login-usuario" autocomplete="username" autocapitalize="off" required>
+      </div>
+      <div class="login-field">
+        <label for="login-password">Contraseña</label>
+        <input type="password" id="login-password" autocomplete="current-password" required>
+      </div>
+
+      <div id="login-error"></div>
+
+      <button type="submit" id="login-submit">Iniciar sesión</button>
+    </form>
+  </section>
+
+  <div id="app-view" hidden>
+
+    <div class="top">
+      <div>
+        <div class="marca">Bodega R-56</div>
+        <div class="titulo-modulo">Cuentas</div>
+      </div>
+      <div class="top-acciones">
+        <div class="top-acciones-fila">
+          <nav class="modulos-nav">
+            <a class="modulo-link" href="./index.html">Dashboard</a>
+            <a class="modulo-link" href="./manifiesto.html">Manifiesto</a>
+            <a class="modulo-link" href="./vale.html">Vale</a>
+            <a class="modulo-link" href="./creditos.html">Créditos</a>
+            <span class="modulo-link activo">Cuentas</span>
+          </nav>
+          <span class="admin-chip" id="admin-chip" hidden>Admin</span>
+          <button id="btn-salir" type="button">Salir</button>
+        </div>
+        <span class="usuario-chip" id="usuario-chip"></span>
+      </div>
+    </div>
+
+    <div id="error-box" hidden></div>
+
+    <div class="cuentas-head">
+      <div class="seccion-titulo">Cuentas por agricultor</div>
+      <button class="btn-texto" id="btn-nueva-cuenta" hidden type="button">+ Nueva cuenta</button>
+    </div>
+
+    <div id="cuentas-lista"><div class="cuentas-vacio">Cargando…</div></div>
+
+    <div style="height:20px;"></div>
+  </div>
+
+  <!-- Modal: alta / edición de cuenta (solo admin) -->
+  <div class="modal-fondo" id="modal-cuenta" hidden>
+    <div class="modal-caja">
+      <div class="modal-titulo" id="modal-cuenta-titulo">Nueva cuenta</div>
+
+      <div class="campo">
+        <label>Nombre de la cuenta</label>
+        <input type="text" id="cuenta-nombre-input" placeholder="Ej. BBVA Ramón 1">
+      </div>
+      <div class="campo">
+        <label>Agricultor</label>
+        <input type="text" id="cuenta-agricultor-input" placeholder="Ej. Ramón">
+      </div>
+      <div class="campo-2col">
+        <div class="campo">
+          <label>Banco</label>
+          <input type="text" id="cuenta-banco-input" placeholder="Ej. BBVA">
+        </div>
+        <div class="campo">
+          <label>Sucursal</label>
+          <input type="text" id="cuenta-sucursal-input" placeholder="Opcional">
+        </div>
+      </div>
+      <div class="campo">
+        <label>Número de cuenta</label>
+        <input type="text" id="cuenta-numcuenta-input" placeholder="Déjalo en blanco para no cambiarlo" inputmode="numeric">
+      </div>
+      <div class="campo">
+        <label>CLABE</label>
+        <input type="text" id="cuenta-clave-input" placeholder="Déjalo en blanco para no cambiarlo" inputmode="numeric">
+      </div>
+      <div class="campo">
+        <label>Estado</label>
+        <select id="cuenta-activa-select">
+          <option value="si">Activa</option>
+          <option value="no">Inactiva</option>
+        </select>
+      </div>
+
+      <div class="campo-error" id="cuenta-error"></div>
+
+      <div class="modal-acciones">
+        <button class="btn-secundario" id="cuenta-cancelar" type="button">Cancelar</button>
+        <button class="btn-primario" id="cuenta-guardar-btn" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: nuevo monto / nueva ronda (solo admin) -->
+  <div class="modal-fondo" id="modal-ronda" hidden>
+    <div class="modal-caja">
+      <div class="modal-titulo" id="modal-ronda-titulo">Nuevo monto</div>
+      <div class="modal-sub" id="modal-ronda-sub"></div>
+
+      <div class="campo">
+        <label>Tope</label>
+        <input type="number" id="ronda-tope-input" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+      </div>
+      <div class="campo" id="campo-ronda-fecha">
+        <label>Fecha de inicio</label>
+        <input type="date" id="ronda-fecha-input">
+      </div>
+
+      <div class="campo-error" id="ronda-error"></div>
+
+      <div class="modal-acciones">
+        <button class="btn-secundario" id="ronda-cancelar" type="button">Cancelar</button>
+        <button class="btn-primario" id="ronda-guardar-btn" type="button">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" hidden></div>
+
+  <script src="./app-cuentas.js"></script>
+</body>
+</html>
