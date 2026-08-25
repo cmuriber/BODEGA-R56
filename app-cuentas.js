@@ -287,7 +287,7 @@ function renderCuentaCard(c) {
     resumenHtml = `
       <div class="cuenta-resumen-dato">Ingresado<br><b>$${fmt(c.sinRonda.ingresado)}</b></div>
       <div class="cuenta-resumen-dato">Asignado<br><b>$${fmt(c.sinRonda.asignado)}</b></div>
-      <span class="badge-alerta">⚠ Sin ronda abierta</span>
+      <span class="badge-pagos">Pagos entrantes</span>
     `;
   } else {
     resumenHtml = '<span class="cuenta-sin-ronda">Sin asignación activa</span>';
@@ -324,7 +324,7 @@ function renderCuentaDetalle(c) {
 
   const avisoSinRonda = c.sinRonda ? `
     <div class="aviso-sin-ronda">
-      ⚠ Ya entró dinero a esta cuenta (Ingresado $${fmt(c.sinRonda.ingresado)}${c.sinRonda.asignado ? ` · Asignado $${fmt(c.sinRonda.asignado)}` : ''}) pero todavía no tiene ninguna ronda abierta que lo lleve a cuenta. Ábrele una con "+ Nuevo monto" para que quede controlado.
+      🟠 Esta cuenta ya está recibiendo pagos (Ingresado $${fmt(c.sinRonda.ingresado)}${c.sinRonda.asignado ? ` · Asignado $${fmt(c.sinRonda.asignado)}` : ''}) aunque todavía no tiene tope. El dinero se sigue sumando solo — abre una ronda con "+ Nuevo monto" cuando quieras ponerle tope y fecha de inicio formal.
     </div>
   ` : '';
 
@@ -356,7 +356,7 @@ function renderRondaFila(r) {
     <div class="ronda-acciones">
       ${r.abierta
         ? `<button class="btn-chico" data-cerrar-ronda="${r.id}" type="button">Cerrar ronda</button>`
-        : `<button class="btn-chico" data-reabrir-ronda="${r.id}" type="button">Reabrir ronda</button>`}
+        : `<button class="btn-chico" data-reabrir-ronda="${r.id}" data-reabrir-fecha="${r.fechaInicio}" type="button">Reabrir ronda</button>`}
     </div>
   ` : '';
 
@@ -415,10 +415,20 @@ document.getElementById('cuentas-lista').addEventListener('click', async (e) => 
   const reabrirBtn = e.target.closest('[data-reabrir-ronda]');
   if (reabrirBtn) {
     const rondaId = reabrirBtn.dataset.reabrirRonda;
-    if (!confirm('¿Reabrir esta ronda? Sus números vuelven a calcularse en vivo a partir de ahora.')) return;
+    const fechaActual = reabrirBtn.dataset.reabrirFecha || '';
+    // Permite ajustar la fecha de inicio al reabrir — por si la cuenta se
+    // reactiva para un periodo nuevo en vez de continuar el anterior. Si
+    // se deja igual, no cambia nada.
+    const nuevaFecha = prompt('¿Reabrir esta ronda? Puedes ajustar su fecha de inicio (los pagos desde esa fecha se le sumarán). Déjala igual si no cambia.', fechaActual);
+    if (nuevaFecha === null) return;
     reabrirBtn.disabled = true;
     try {
-      const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=cuenta_ronda_reabrir&token=${encodeURIComponent(tokenActual)}&rondaId=${encodeURIComponent(rondaId)}`);
+      let url = `${APPS_SCRIPT_URL}?action=cuenta_ronda_reabrir&token=${encodeURIComponent(tokenActual)}&rondaId=${encodeURIComponent(rondaId)}`;
+      const fechaLimpia = nuevaFecha.trim();
+      if (fechaLimpia && fechaLimpia !== fechaActual && /^\d{4}-\d{2}-\d{2}$/.test(fechaLimpia)) {
+        url += `&fechaInicio=${encodeURIComponent(fechaLimpia)}`;
+      }
+      const data = await llamarJSONP(url);
       if (!data.ok) { mostrarToast(data.error || 'No se pudo reabrir la ronda.', 'error'); return; }
       mostrarToast('Ronda reabierta.', 'ok');
       await cargarArbol();

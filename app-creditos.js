@@ -693,6 +693,7 @@ function abrirModalPago() {
   pagoClienteInput.value = '';
   pagoClienteSeleccionado = null;
   document.getElementById('pago-monto-input').value = '';
+  document.getElementById('pago-fecha-input').value = fechaHoyCDMX();
   document.querySelectorAll('input[name="forma-pago"]').forEach(r => { r.checked = r.value === 'efectivo'; });
   document.getElementById('campo-cuenta-destino').hidden = true;
   document.getElementById('pago-cuenta-select').value = '';
@@ -719,6 +720,8 @@ document.getElementById('pago-guardar-btn').addEventListener('click', async () =
   const monto = Number(document.getElementById('pago-monto-input').value);
   const forma = document.querySelector('input[name="forma-pago"]:checked').value;
   const cuentaId = document.getElementById('pago-cuenta-select').value;
+  const fechaInput = document.getElementById('pago-fecha-input').value;
+  const fecha = fechaInput || fechaHoyCDMX();
 
   if (!cliente) { errorBox.textContent = 'Selecciona un cliente.'; return; }
   if (!monto || isNaN(monto) || monto <= 0) { errorBox.textContent = 'Ingresa un monto válido.'; return; }
@@ -732,25 +735,26 @@ document.getElementById('pago-guardar-btn').addEventListener('click', async () =
   boton.disabled = true;
   boton.textContent = 'Guardando…';
 
-  const payload = { cliente, monto, forma, cuentaId: forma === 'efectivo' ? '' : cuentaId };
-  const fechaHoy = fechaHoyCDMX();
+  const payload = { cliente, monto, forma, cuentaId: forma === 'efectivo' ? '' : cuentaId, fecha };
 
   try {
     let idPago = null;
+    let fechaContable = null;
     if (navigator.onLine) {
-      const params = new URLSearchParams({ action: 'pago_guardar', token: tokenActual, cliente: payload.cliente, monto: String(payload.monto), forma: payload.forma });
+      const params = new URLSearchParams({ action: 'pago_guardar', token: tokenActual, cliente: payload.cliente, monto: String(payload.monto), forma: payload.forma, fecha: payload.fecha });
       if (payload.cuentaId) params.set('cuentaId', payload.cuentaId);
       const data = await llamarJSONP(`${APPS_SCRIPT_URL}?${params.toString()}`);
       if (data.error === 'no_autorizado') { await volverALogin(); return; }
       if (!data.ok) throw new Error(data.error || 'No se pudo guardar el pago.');
       idPago = data.id;
+      fechaContable = data.fechaContable || null;
       mostrarToast(`Pago de ${cliente} guardado — $${fmt(monto)}.`, 'ok');
     } else {
       throw new Error('sin conexión');
     }
 
     document.getElementById('modal-pago').hidden = true;
-    abrirModalPagoListo(cliente, monto, forma, cuentaId, fechaHoy, idPago);
+    abrirModalPagoListo(cliente, monto, forma, cuentaId, fecha, idPago, fechaContable);
 
     // Si el cliente del pago es el mismo que está filtrado a la izquierda,
     // refresca su saldo a favor de inmediato.
@@ -762,7 +766,7 @@ document.getElementById('pago-guardar-btn').addEventListener('click', async () =
       await encolar('pago_guardar', payload);
       mostrarToast('Sin conexión — el pago quedó guardado en este dispositivo y se sincronizará en cuanto regrese la señal.', 'info');
       document.getElementById('modal-pago').hidden = true;
-      abrirModalPagoListo(cliente, monto, forma, cuentaId, fechaHoy, null);
+      abrirModalPagoListo(cliente, monto, forma, cuentaId, fecha, null, null);
       if (clienteActivo && clienteActivo.toLowerCase() === cliente.toLowerCase()) cargarPagosPendientesCliente();
     } else {
       errorBox.textContent = err.message;
@@ -780,10 +784,17 @@ function nombreCuentaPorId(cuentaId) {
   return c ? `${c.agricultor} — ${c.nombreCuenta}` : '';
 }
 
-function abrirModalPagoListo(cliente, monto, forma, cuentaId, fecha, idPago) {
+function abrirModalPagoListo(cliente, monto, forma, cuentaId, fecha, idPago, fechaContable) {
   ultimoPagoGuardado = { cliente, monto, forma, cuentaId, fecha, idPago };
   const resumen = document.getElementById('pago-listo-resumen');
-  resumen.textContent = `${cliente} · ${FORMA_LABELS[forma] || forma} · $${fmt(monto)}`;
+  let texto = `${cliente} · ${FORMA_LABELS[forma] || forma} · $${fmt(monto)}`;
+  // Si la fecha contable se recorrió al mes siguiente (pago de fin de mes
+  // en fin de semana o festivo), se lo hacemos saber aquí mismo — así no
+  // hay sorpresas cuando se facture.
+  if (fechaContable && fechaContable !== fecha) {
+    texto += `<br><span style="color:var(--dorado-dim);">Se factura en ${fechaCorta(fechaContable)} — el ${fechaCorta(fecha)} cae en fin de semana o festivo.</span>`;
+  }
+  resumen.innerHTML = texto;
   document.getElementById('modal-pago-listo').hidden = false;
 }
 
@@ -951,6 +962,7 @@ async function sincronizar() {
         const p = item.payload;
         const params = new URLSearchParams({ action: 'pago_guardar', token: tokenActual, cliente: p.cliente, monto: String(p.monto), forma: p.forma });
         if (p.cuentaId) params.set('cuentaId', p.cuentaId);
+        if (p.fecha) params.set('fecha', p.fecha);
         const data = await llamarJSONP(`${APPS_SCRIPT_URL}?${params.toString()}`);
         if (!data.ok) throw new Error(data.error || 'error');
         await borrarPendiente(item.id);
