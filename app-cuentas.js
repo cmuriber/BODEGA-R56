@@ -283,6 +283,12 @@ function renderCuentaCard(c) {
       <div class="cuenta-resumen-dato">Asignado<br><b>$${fmt(rondaAbierta.asignado)}</b></div>
       ${rondaAbierta.sobreTope ? '<span class="badge-alerta">⚠ Sobre el tope</span>' : '<span class="badge-abierta">Ronda abierta</span>'}
     `;
+  } else if (c.sinRonda) {
+    resumenHtml = `
+      <div class="cuenta-resumen-dato">Ingresado<br><b>$${fmt(c.sinRonda.ingresado)}</b></div>
+      <div class="cuenta-resumen-dato">Asignado<br><b>$${fmt(c.sinRonda.asignado)}</b></div>
+      <span class="badge-alerta">⚠ Sin ronda abierta</span>
+    `;
   } else {
     resumenHtml = '<span class="cuenta-sin-ronda">Sin asignación activa</span>';
   }
@@ -316,6 +322,12 @@ function renderCuentaDetalle(c) {
     </div>
   ` : '';
 
+  const avisoSinRonda = c.sinRonda ? `
+    <div class="aviso-sin-ronda">
+      ⚠ Ya entró dinero a esta cuenta (Ingresado $${fmt(c.sinRonda.ingresado)}${c.sinRonda.asignado ? ` · Asignado $${fmt(c.sinRonda.asignado)}` : ''}) pero todavía no tiene ninguna ronda abierta que lo lleve a cuenta. Ábrele una con "+ Nuevo monto" para que quede controlado.
+    </div>
+  ` : '';
+
   const rondasHtml = c.rondas.length === 0
     ? '<div class="cuenta-sin-ronda" style="margin:8px 0;">Esta cuenta todavía no ha tenido ninguna asignación de monto.</div>'
     : c.rondas.map(r => renderRondaFila(r)).join('');
@@ -327,6 +339,7 @@ function renderCuentaDetalle(c) {
   return `
     ${datosBanco}
     ${accionesCuenta}
+    ${avisoSinRonda}
     <div class="rondas-titulo">Historial de asignaciones</div>
     ${rondasHtml}
     ${btnNuevoMonto}

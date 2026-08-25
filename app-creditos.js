@@ -312,12 +312,39 @@ async function cargarCuentas() {
   poblarSelectCuentas('estado-cuenta-cuenta-select', 'Sin cuenta — pago en efectivo');
 }
 
+// Mismo orden que la pantalla de Cuentas (ver ORDEN_AGRICULTORES_CUENTAS
+// en Code.gs) — no alfabético a propósito: Ramón y Estefania son los
+// grupos principales y van primero. Duplicado aquí (en vez de pedírselo
+// al backend) porque es solo para acomodar visualmente el selector; el
+// dato real de agrupación sigue viviendo únicamente en la columna
+// Agricultor de la hoja "Cuentas".
+const ORDEN_AGRICULTORES_CUENTAS = ['Ramón', 'Estefania', 'Jesse Ulrich', 'Magadán', 'Antonio Zarate', 'Gabriel Montes'];
+
 function poblarSelectCuentas(selectId = 'pago-cuenta-select', etiquetaVacia = 'Seleccionar…') {
   const sel = document.getElementById(selectId);
   if (!sel) return;
   const actual = sel.value;
+
+  const grupos = {};
+  cuentasCatalogo.forEach(c => {
+    const agricultor = c.agricultor || 'Sin agricultor asignado';
+    if (!grupos[agricultor]) grupos[agricultor] = [];
+    grupos[agricultor].push(c);
+  });
+  const agricultoresOrdenados = Object.keys(grupos).sort((a, b) => {
+    const pa = ORDEN_AGRICULTORES_CUENTAS.indexOf(a);
+    const pb = ORDEN_AGRICULTORES_CUENTAS.indexOf(b);
+    const ra = pa === -1 ? 999 : pa;
+    const rb = pb === -1 ? 999 : pb;
+    return ra !== rb ? ra - rb : a.localeCompare(b, 'es');
+  });
+
   sel.innerHTML = `<option value="">${etiquetaVacia}</option>` +
-    cuentasCatalogo.map(c => `<option value="${c.id}">${c.agricultor} — ${c.nombreCuenta}</option>`).join('');
+    agricultoresOrdenados.map(agricultor => `
+      <optgroup label="${agricultor}">
+        ${grupos[agricultor].map(c => `<option value="${c.id}">${c.nombreCuenta}</option>`).join('')}
+      </optgroup>
+    `).join('');
   if (actual) sel.value = actual;
 }
 
