@@ -294,12 +294,14 @@ function renderCuentaCard(c) {
       <div class="cuenta-resumen-dato">Asignado<br><b>$${fmt(c.sinRonda.asignado)}</b></div>
       <span class="badge-pagos">Pagos entrantes</span>
     `;
+  } else if (c.recienteActiva) {
+    resumenHtml = '<span class="badge-reciente">🕓 Usada hace poco</span>';
   } else {
     resumenHtml = '<span class="cuenta-sin-ronda">Sin asignación activa</span>';
   }
 
   return `
-    <div class="cuenta-card ${expandida ? 'expandida' : ''} ${c.activa ? '' : 'inactiva'}" data-cuenta-id="${c.id}">
+    <div class="cuenta-card ${expandida ? 'expandida' : ''} ${c.activa ? '' : 'inactiva'} ${c.recienteActiva ? 'reciente' : ''}" data-cuenta-id="${c.id}">
       <div class="cuenta-cabecera" data-toggle="${c.id}">
         <div class="cuenta-nombre">${c.nombreCuenta}${!c.activa ? '<span class="inactiva-tag">Inactiva</span>' : ''}</div>
         <div class="cuenta-resumen">${resumenHtml}<span class="chevron">▶</span></div>

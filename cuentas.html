@@ -21,6 +21,8 @@
     --ambar: #b7791f;
     --dorado: #b7791f;
     --dorado-dim: #8a6a1f;
+    --reciente: #3b6ea5;
+    --reciente-dim: #2c5580;
     --text: #202824;
     --text-dim: #667a70;
   }
@@ -382,6 +384,11 @@
     margin-bottom: 10px; overflow: hidden;
   }
   .cuenta-card.inactiva { opacity: 0.55; }
+  .cuenta-card.reciente { border-left: 4px solid var(--reciente); background: linear-gradient(90deg, rgba(59,110,165,0.05), transparent 60px); }
+  .badge-reciente {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+    color: #fff; background: var(--reciente); border-radius: 999px; padding: 3px 9px; white-space: nowrap;
+  }
   .cuenta-cabecera {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     padding: 13px 14px; cursor: pointer;
