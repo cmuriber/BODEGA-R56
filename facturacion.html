@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6f43">
+<title>Bodega R-56 — Facturación</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3f5f4;
+    --card: #ffffff;
+    --card-border: #dfe4e1;
+    --tomate: #c0392b;
+    --tomate-dim: #96301f;
+    --tallo: #1f6f43;
+    --ambar: #b7791f;
+    --dorado: #b7791f;
+    --dorado-dim: #8a6a1f;
+    --reciente: #3b6ea5;
+    --reciente-dim: #2c5580;
+    --text: #202824;
+    --text-dim: #667a70;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(24px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Login (idéntico a los demás módulos) ---------- */
+  #login-view {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(183,121,31,0.06), transparent 60%),
+      var(--bg);
+  }
+  #login-view[hidden] { display: none; }
+
+  .login-card {
+    width: 100%;
+    max-width: 360px;
+    background: linear-gradient(165deg, #ffffff 0%, #fafbfa 100%);
+    border: 1px solid rgba(183,121,31,0.25);
+    border-radius: 18px;
+    padding: 36px 28px 28px;
+    position: relative;
+    box-shadow: 0 12px 32px rgba(23,85,52,0.12), 0 2px 8px rgba(23,85,52,0.08);
+  }
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 56px; height: 3px;
+    border-radius: 0 0 4px 4px;
+    background: linear-gradient(90deg, var(--dorado-dim), var(--dorado));
+  }
+
+  .login-eyebrow {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--dorado);
+    text-align: center;
+    font-weight: 700;
+  }
+  .login-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 30px;
+    font-weight: 700;
+    text-align: center;
+    margin: 6px 0 4px;
+    color: var(--text);
+  }
+  .login-sub {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 26px;
+  }
+
+  .login-field { margin-bottom: 16px; }
+  .login-field label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .login-field input {
+    width: 100%;
+    background: #fafbfa;
+    border: 1px solid rgba(183,121,31,0.2);
+    border-radius: 10px;
+    padding: 13px 14px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  .login-field input:focus {
+    outline: none;
+    border-color: var(--dorado);
+  }
+
+  #login-error {
+    color: #c0392b;
+    font-size: 13px;
+    text-align: center;
+    margin: -4px 0 14px;
+    min-height: 16px;
+  }
+
+  button#login-submit {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1f6f43, #175534);
+    color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  button#login-submit:disabled { opacity: 0.6; }
+
+  /* ---------- Barra superior (idéntico patrón a los demás módulos) ---------- */
+  #app-view[hidden] { display: none; }
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px 20px 8px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .marca {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .titulo-modulo { font-size: 18px; font-weight: 600; margin-top: 4px; }
+
+  .top-acciones { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .top-acciones-fila { display: flex; align-items: center; gap: 10px; }
+  .top-acciones a, .top-acciones button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 13px;
+    padding: 6px 0;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .modulos-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .modulos-nav .modulo-link {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--text-dim);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 7px 14px;
+    white-space: nowrap;
+    cursor: default;
+  }
+  .modulos-nav a.modulo-link { cursor: pointer; }
+  .modulos-nav a.modulo-link:hover { border-color: var(--tallo); color: var(--tallo); }
+  .modulos-nav .modulo-link.activo { background: var(--tallo); border-color: var(--tallo); color: #fff; }
+
+  .usuario-chip {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .usuario-chip::before { content: '👤 '; }
+
+  #error-box {
+    margin: 16px 20px 0;
+    padding: 10px 14px;
+    background: rgba(183, 121, 31, 0.15);
+    border: 1px solid var(--ambar);
+    color: var(--ambar);
+    font-size: 13px;
+    border-radius: 10px;
+  }
+  #error-box[hidden] { display: none; }
+
+  .seccion-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 19px;
+  }
+  .seccion-titulo-chica {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .btn-primario {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--tomate), var(--tomate-dim));
+    color: #FFF8F0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .btn-primario:disabled { opacity: 0.45; cursor: default; }
+  .btn-secundario {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    background: var(--card);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .btn-texto {
+    background: none;
+    border: none;
+    color: var(--dorado);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 0;
+  }
+  .btn-chico {
+    background: transparent; border: 1px solid var(--card-border); color: var(--text);
+    border-radius: 10px; padding: 7px 11px; font-size: 12px; font-weight: 700; cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-chico:hover { border-color: var(--tallo); color: var(--tallo); }
+  .btn-chico.dorado { border-color: var(--dorado); color: var(--dorado-dim); }
+  .btn-chico.dorado:hover { background: rgba(183,121,31,0.1); }
+  .btn-chico.peligro { border-color: var(--tomate); color: var(--tomate-dim); }
+  .btn-chico.peligro:hover { background: rgba(192,57,43,0.08); }
+
+  .admin-chip {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ambar); border: 1px solid var(--ambar); border-radius: 20px; padding: 3px 9px;
+    background: rgba(183,121,31,0.1);
+  }
+  .admin-chip[hidden] { display: none; }
+
+  /* ---------- Modal genérico (idéntico a los demás módulos) ---------- */
+  .modal-fondo {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: flex-end;
+    z-index: 50;
+  }
+  .modal-fondo[hidden] { display: none; }
+  .modal-caja {
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg);
+    border-radius: 20px 20px 0 0;
+    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
+    max-height: 92vh;
+    overflow-y: auto;
+    border-top: 1px solid rgba(183,121,31,0.25);
+  }
+  .modal-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  .modal-sub { font-size: 12.5px; color: var(--text-dim); margin: -4px 0 14px; }
+  .campo { margin-bottom: 12px; position: relative; }
+  .campo label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .campo select, .campo input[type=text], .campo input[type=number], .campo input[type=date] {
+    width: 100%;
+    background: #fafbfa;
+    border: 1px solid var(--card-border);
+    border-radius: 9px;
+    padding: 10px 11px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  .campo select:focus, .campo input:focus { outline: none; border-color: var(--dorado); }
+  .campo-caption { font-size: 11.5px; color: var(--text-dim); margin: -6px 0 12px; }
+  .campo-error { color: #c0392b; font-size: 13px; min-height: 16px; margin: -4px 0 8px; }
+
+  .modal-acciones { display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+  .modal-acciones .btn-secundario, .modal-acciones .btn-primario { flex: 1; }
+
+  /* ---------- Aviso flotante ---------- */
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(30px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    max-width: calc(100% - 40px);
+    background: var(--tallo);
+    color: #fafbfa;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: center;
+    padding: 10px 18px;
+    border-radius: 20px;
+    z-index: 60;
+    box-shadow: 0 8px 24px rgba(23,85,52,0.14);
+  }
+  #toast[hidden] { display: none; }
+  #toast.toast--pendiente { background: var(--ambar); }
+  #toast.toast--error { background: var(--tomate); }
+
+  /* ---------- Tabs ---------- */
+  .tabs-nav { display: flex; gap: 8px; margin: 16px 20px 14px; }
+  .tab-btn {
+    flex: 1; padding: 10px; border: 1px solid var(--card-border); border-radius: 10px;
+    background: var(--card); font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: 13px; letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-dim); cursor: pointer;
+  }
+  .tab-btn.activo { background: var(--tallo); border-color: var(--tallo); color: #fff; }
+  .tab-panel[hidden] { display: none; }
+
+  /* ---------- Módulo Facturación: "En construcción" ---------- */
+  .compendios-vacio, .vales-vacio { padding: 30px 20px; text-align: center; color: var(--text-dim); font-size: 13.5px; }
+
+  .compendio-card {
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
+    margin: 0 20px 16px; padding: 14px 16px;
+  }
+  .compendio-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 10px; }
+  .compendio-agricultor { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; }
+  .compendio-total { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+
+  .bloque-fila { border: 1px solid var(--card-border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; background: #fafbfa; }
+  .bloque-cliente { font-weight: 700; font-size: 13.5px; }
+  .bloque-meta { font-size: 11.5px; color: var(--text-dim); margin-top: 2px; }
+  .bloque-partidas-mini { font-size: 11.5px; color: var(--text-dim); margin-top: 4px; }
+  .bloque-acciones { display: flex; gap: 8px; margin-top: 8px; }
+  .bloque-vacio { color: var(--text-dim); font-style: italic; font-size: 12.5px; padding: 6px 0 10px; }
+
+  .compendio-acciones { margin-top: 4px; }
+
+  /* ---------- Partidas (compartido entre modales de edición) ---------- */
+  .partidas-tabla { border: 1px solid var(--card-border); border-radius: 10px; overflow: hidden; margin: 8px 0; }
+  .partidas-fila {
+    display: grid; grid-template-columns: 1.1fr 0.75fr 0.75fr 0.8fr 24px; gap: 6px;
+    padding: 8px 10px; align-items: center; font-size: 12.5px; border-bottom: 1px solid #f0f2f1;
+  }
+  .partidas-fila:last-child { border-bottom: none; }
+  .partidas-fila.head { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); font-weight: 700; background: rgba(31,111,67,0.04); }
+  .partidas-fila .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .partidas-fila input[type=text], .partidas-fila input[type=number] {
+    width: 100%; padding: 6px 7px; font-size: 12.5px; border: 1px solid var(--card-border);
+    border-radius: 6px; background: #fff; font-family: 'Inter', sans-serif;
+  }
+  .partidas-fila input:focus { outline: none; border-color: var(--dorado); }
+  .quitar-partida-btn { background: none; border: none; color: var(--tomate-dim); cursor: pointer; font-size: 13px; padding: 0; }
+  .partidas-suma-fila {
+    display: flex; justify-content: space-between; padding: 8px 10px; font-weight: 700; font-size: 12.5px;
+    border-top: 1px dashed var(--card-border);
+  }
+  .btn-agregar-partida { margin-top: -2px; }
+
+  /* ---------- Documento FACTURAS (vista previa en pantalla) ---------- */
+  .documento-facturas { font-family: 'Inter', sans-serif; color: var(--text); }
+  .documento-facturas .doc-titulo {
+    text-align: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: 20px; letter-spacing: 0.5px; margin: 0 0 16px;
+  }
+  .documento-facturas .doc-bloque { padding: 14px 0; border-bottom: 1px solid var(--card-border); }
+  .documento-facturas .doc-bloque:last-child { border-bottom: none; }
+  .documento-facturas .doc-cliente-label { color: var(--reciente-dim); font-weight: 700; font-size: 12.5px; }
+  .documento-facturas .doc-cliente-nombre { font-weight: 700; font-size: 13.5px; }
+  .documento-facturas table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+  .documento-facturas th {
+    background: var(--reciente-dim); color: #fff; text-transform: uppercase; font-size: 10px;
+    padding: 6px 8px; text-align: left;
+  }
+  .documento-facturas td { padding: 6px 8px; font-size: 12.5px; border-bottom: 1px solid #eee; }
+  .documento-facturas td.num, .documento-facturas th.num { text-align: right; }
+  .documento-facturas .doc-suma-fila td { font-weight: 800; border-top: 2px solid var(--text); text-decoration: underline; }
+  .documento-facturas .doc-pago-con { margin-top: 8px; font-size: 12.5px; }
+  .documento-facturas .doc-pago-con b { display: block; margin-top: 2px; }
+  .documento-facturas .doc-fecha { margin-top: 4px; font-size: 12px; color: var(--text-dim); }
+
+  /* Impresión del documento FACTURAS — mismo mecanismo "print-area +
+     @page inyectado + clase de body" que imprimirEstadoCuenta() en
+     app-creditos.js. */
+  #print-area-facturas { display: none; }
+  @media print {
+    body.imprimiendo-facturas * { visibility: hidden; }
+    body.imprimiendo-facturas #print-area-facturas,
+    body.imprimiendo-facturas #print-area-facturas * { visibility: visible; }
+    body.imprimiendo-facturas #print-area-facturas {
+      display: block; position: absolute; left: 0; top: 0; width: 100%;
+      font-family: 'Inter', sans-serif; color: #000; font-size: 12.5px; line-height: 1.45;
+    }
+    #print-area-facturas .doc-titulo { font-family: 'Barlow Condensed', sans-serif; text-align: center; font-size: 22px; letter-spacing: 0.4px; margin: 0 0 18px; }
+    #print-area-facturas .doc-bloque { padding: 14px 0; border-bottom: 1px solid #ccc; page-break-inside: avoid; }
+    #print-area-facturas .doc-cliente-label { color: #1c3f5e; font-weight: 700; }
+    #print-area-facturas table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+    #print-area-facturas th { background: #1c3f5e; color: #fff; text-transform: uppercase; font-size: 10px; padding: 5px 7px; text-align: left; }
+    #print-area-facturas td { padding: 5px 7px; font-size: 11.5px; border-bottom: 1px solid #eee; }
+    #print-area-facturas td.num, #print-area-facturas th.num { text-align: right; }
+    #print-area-facturas .doc-suma-fila td { font-weight: 800; border-top: 2px solid #000; text-decoration: underline; }
+    #print-area-facturas .doc-pago-con { margin-top: 8px; font-size: 12px; }
+    #print-area-facturas .doc-pago-con b { display: block; margin-top: 2px; }
+    #print-area-facturas .doc-fecha { margin-top: 4px; font-size: 11.5px; color: #444; }
+  }
+
+  /* ---------- Registro ---------- */
+  .registro-tabla-wrap { margin: 0 20px 18px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow-x: auto; }
+  .registro-fila {
+    display: grid; grid-template-columns: 90px 1fr 1fr 55px 90px; gap: 8px;
+    padding: 9px 10px; border-bottom: 1px solid #f0f2f1; font-size: 12px; align-items: center; min-width: 460px;
+  }
+  .registro-fila:last-child { border-bottom: none; }
+  .registro-fila.head { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); font-weight: 700; background: rgba(31,111,67,0.04); }
+  .registro-fila .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .registro-fila-detalle {
+    display: grid; grid-template-columns: 70px 1fr 1fr 1fr 70px 70px; gap: 8px;
+    padding: 9px 10px; border-bottom: 1px solid #f0f2f1; font-size: 12px; align-items: center; min-width: 520px;
+  }
+  .registro-fila-detalle:last-child { border-bottom: none; }
+  .registro-fila-detalle.head { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); font-weight: 700; background: rgba(31,111,67,0.04); }
+  .registro-fila-detalle .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .registro-fila-detalle.con-reabrir { grid-template-columns: 70px 1fr 1fr 1fr 70px 70px 80px; min-width: 600px; }
+  .registro-fila-detalle .btn-chico { white-space: nowrap; }
+  .registro-fila > span, .registro-fila-detalle > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .reabrir-panel { margin: 0 20px 20px; padding: 14px 16px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; }
+  .reabrir-panel[hidden] { display: none; }
+  .reabrir-panel-fila { display: flex; gap: 8px; }
+  .reabrir-panel-fila input {
+    flex: 1; background: #fafbfa; border: 1px solid var(--card-border); border-radius: 9px;
+    padding: 10px 11px; font-size: 14px; color: var(--text); font-family: 'Inter', sans-serif;
+  }
+  .reabrir-panel-fila input:focus { outline: none; border-color: var(--dorado); }
+
+  /* ---------- Layout ancho en PC (mismo criterio que los demás módulos) ---------- */
+  @media (min-width: 860px) {
+    body { max-width: 900px; }
+  }
+</style>
+</head>
+<body>
+
+  <section id="login-view">
+    <form class="login-card" id="login-form">
+      <div class="login-eyebrow">Sistema · Acceso</div>
+      <div class="login-title">Bienvenido</div>
+      <div class="login-sub">Ingresa tus credenciales para continuar</div>
+
+      <div class="login-field">
+        <label for="login-usuario">Usuario</label>
+        <input type="text" id="login-usuario" autocomplete="username" autocapitalize="off" required>
+      </div>
+      <div class="login-field">
+        <label for="login-password">Contraseña</label>
+        <input type="password" id="login-password" autocomplete="current-password" required>
+      </div>
+
+      <div id="login-error"></div>
+
+      <button type="submit" id="login-submit">Iniciar sesión</button>
+    </form>
+  </section>
+
+  <div id="app-view" hidden>
+
+    <div class="top">
+      <div>
+        <div class="marca">Bodega R-56</div>
+        <div class="titulo-modulo">Facturación</div>
+      </div>
+      <div class="top-acciones">
+        <div class="top-acciones-fila">
+          <nav class="modulos-nav">
+            <a class="modulo-link" href="./index.html">Dashboard</a>
+            <a class="modulo-link" href="./manifiesto.html">Manifiesto</a>
+            <a class="modulo-link" href="./vale.html">Vale</a>
+            <a class="modulo-link" href="./creditos.html">Créditos</a>
+            <a class="modulo-link" href="./cuentas.html">Cuentas</a>
+            <a class="modulo-link" href="./pagos.html">Pagos</a>
+            <span class="modulo-link activo">Facturación</span>
+          </nav>
+          <span class="admin-chip" id="admin-chip" hidden>Admin</span>
+          <button id="btn-salir" type="button">Salir</button>
+        </div>
+        <span class="usuario-chip" id="usuario-chip"></span>
+      </div>
+    </div>
+
+    <div id="error-box" hidden></div>
+
+    <div class="tabs-nav">
+      <button class="tab-btn activo" id="tab-btn-construccion" data-tab="construccion" type="button">En construcción</button>
+      <button class="tab-btn" id="tab-btn-registro" data-tab="registro" type="button">Registro</button>
+    </div>
+
+    <!-- ---------- Tab: En construcción ---------- -->
+    <div class="tab-panel" id="tab-construccion">
+      <div id="compendios-lista"><div class="compendios-vacio">Cargando…</div></div>
+      <div style="height:20px;"></div>
+    </div>
+
+    <!-- ---------- Tab: Registro ---------- -->
+    <div class="tab-panel" id="tab-registro" hidden>
+      <div class="reabrir-panel" id="reabrir-panel" hidden>
+        <div class="seccion-titulo-chica">Reabrir compendio cerrado</div>
+        <div class="campo-caption" style="margin:0 0 8px;">Usa "🔓 Reabrir" en la fila de la factura dentro del detalle de abajo. Si prefieres, también puedes pegar aquí el ID de un compendio a mano (se ve en la hoja "Compendios" del Sheet).</div>
+        <div class="reabrir-panel-fila">
+          <input type="text" id="reabrir-compendio-id-input" placeholder="ID del compendio (opcional)">
+          <button class="btn-chico dorado" id="reabrir-compendio-btn" type="button">Reabrir</button>
+        </div>
+        <div class="campo-error" id="reabrir-compendio-error"></div>
+      </div>
+
+      <div style="margin:0 20px 10px;" class="seccion-titulo">Resumen por mes y cuenta</div>
+      <div class="registro-tabla-wrap">
+        <div id="registro-resumen-lista"><div class="vales-vacio">Cargando…</div></div>
+      </div>
+
+      <div style="margin:18px 20px 10px;" class="seccion-titulo">Facturas pedidas — detalle</div>
+      <div class="registro-tabla-wrap">
+        <div id="registro-detalle-lista"><div class="vales-vacio">Cargando…</div></div>
+      </div>
+      <div style="height:20px;"></div>
+    </div>
+  </div>
+
+  <!-- Modal: vista previa / cierre / impresión de un compendio -->
+  <div class="modal-fondo" id="modal-preview-compendio" hidden>
+    <div class="modal-caja">
+      <div class="modal-titulo" id="preview-compendio-titulo">Vista previa</div>
+      <div class="documento-facturas" id="preview-compendio-documento"></div>
+      <div class="campo-error" id="preview-compendio-error"></div>
+      <div class="modal-acciones">
+        <button class="btn-secundario" id="preview-compendio-cerrar-modal" type="button">Cerrar</button>
+        <button class="btn-primario" id="preview-compendio-cerrar-compendio-btn" type="button">Cerrar compendio</button>
+        <button class="btn-primario" id="preview-compendio-imprimir-btn" type="button" hidden>🖨 Imprimir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: editar un bloque (factura) dentro de un compendio abierto -->
+  <div class="modal-fondo" id="modal-bloque-editar" hidden>
+    <div class="modal-caja">
+      <div class="modal-titulo">Editar factura</div>
+
+      <div class="campo">
+        <label>Cliente de la factura</label>
+        <input type="text" id="bloque-cliente-input" placeholder="Nombre del cliente…" autocomplete="off">
+      </div>
+
+      <div class="seccion-titulo-chica">Partidas</div>
+      <div id="bloque-partidas-tabla"></div>
+
+      <div class="campo-error" id="bloque-error"></div>
+
+      <div class="modal-acciones">
+        <button class="btn-secundario" id="bloque-cancelar" type="button">Cancelar</button>
+        <button class="btn-primario" id="bloque-guardar-btn" type="button">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" hidden></div>
+  <div id="print-area-facturas"></div>
+
+  <script src="./app-facturacion.js"></script>
+</body>
+</html>
