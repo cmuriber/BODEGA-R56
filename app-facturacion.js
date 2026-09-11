@@ -396,6 +396,34 @@ function abrirPreviewCompendio(compendioId) {
   document.getElementById('modal-preview-compendio').hidden = false;
 }
 
+// "Visualizar" desde Registro: mismo modal de vista previa, pero para un
+// compendio YA CERRADO — no lo reabre, solo trae su documento (Apps Script
+// acepta compendio_preview para compendios abiertos o cerrados por igual)
+// y deja lista la opción de Imprimir para reimprimir el PDF preliminar.
+async function abrirPreviewCompendioSoloLectura(compendioId) {
+  previewCompendioActual = null;
+  document.getElementById('preview-compendio-titulo').textContent = 'Cargando…';
+  document.getElementById('preview-compendio-documento').innerHTML = '<div class="pagos-vacio">Cargando…</div>';
+  document.getElementById('preview-compendio-error').textContent = '';
+  document.getElementById('preview-compendio-cerrar-compendio-btn').hidden = true;
+  document.getElementById('preview-compendio-imprimir-btn').hidden = true;
+  document.getElementById('modal-preview-compendio').hidden = false;
+
+  try {
+    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=compendio_preview&token=${encodeURIComponent(tokenActual)}&compendioId=${encodeURIComponent(compendioId)}`);
+    if (data.error === 'no_autorizado') { await volverALogin(); return; }
+    if (!data.ok) throw new Error(data.error || 'No se pudo cargar el compendio.');
+    previewCompendioActual = data.compendio;
+    document.getElementById('preview-compendio-titulo').textContent = `Compendio cerrado — ${data.compendio.agricultor}`;
+    document.getElementById('preview-compendio-documento').innerHTML = generarDocumentoFacturasHTML(data.compendio);
+    document.getElementById('preview-compendio-imprimir-btn').hidden = false;
+  } catch (err) {
+    document.getElementById('preview-compendio-titulo').textContent = 'No se pudo cargar';
+    document.getElementById('preview-compendio-documento').innerHTML = '';
+    document.getElementById('preview-compendio-error').textContent = navigator.onLine ? err.message : 'Sin conexión — no se pudo cargar el compendio.';
+  }
+}
+
 document.getElementById('preview-compendio-cerrar-modal').addEventListener('click', () => {
   document.getElementById('modal-preview-compendio').hidden = true;
 });
@@ -588,21 +616,30 @@ function renderRegistro() {
   if (registroDetalle.length === 0) {
     contDetalle.innerHTML = '<div class="vales-vacio">Todavía no hay facturas registradas.</div>';
   } else {
+    // "Visualizar" (ver el documento ya cerrado, sin reabrirlo — solo para
+    // reimprimir) se ofrece a cualquier usuario. "Reabrir" sigue siendo
+    // solo para admin, y vive en la misma celda de acciones.
     const mostrarReabrir = usuarioRol === 'admin';
     contDetalle.innerHTML = `
-      <div class="registro-fila-detalle head${mostrarReabrir ? ' con-reabrir' : ''}"><span>Cierre</span><span>Cliente</span><span>Agricultor</span><span>Cuenta</span><span>Monto</span><span>Total</span>${mostrarReabrir ? '<span></span>' : ''}</div>
+      <div class="registro-fila-detalle head con-acciones"><span>Cierre</span><span>Cliente</span><span>Agricultor</span><span>Cuenta</span><span>Monto</span><span>Total</span><span></span></div>
       ${registroDetalle.map(d => `
-        <div class="registro-fila-detalle${mostrarReabrir ? ' con-reabrir' : ''}">
+        <div class="registro-fila-detalle con-acciones">
           <span>${fechaCorta(d.fechaCierre)}</span>
           <span>${d.cliente}</span>
           <span>${d.agricultor || '—'}</span>
           <span>${d.cuentaNombre || '—'}</span>
           <span class="num">$${fmt(d.monto)}</span>
           <span class="num">$${fmt(d.total)}</span>
-          ${mostrarReabrir ? `<span><button class="btn-chico" data-reabrir-fila="${d.compendioId}" type="button">🔓 Reabrir</button></span>` : ''}
+          <span class="celda-acciones">
+            <button class="btn-chico" data-visualizar-fila="${d.compendioId}" type="button">👁 Visualizar</button>
+            ${mostrarReabrir ? `<button class="btn-chico" data-reabrir-fila="${d.compendioId}" type="button">🔓 Reabrir</button>` : ''}
+          </span>
         </div>
       `).join('')}
     `;
+    contDetalle.querySelectorAll('[data-visualizar-fila]').forEach(btn => {
+      btn.addEventListener('click', () => abrirPreviewCompendioSoloLectura(btn.dataset.visualizarFila));
+    });
     if (mostrarReabrir) {
       contDetalle.querySelectorAll('[data-reabrir-fila]').forEach(btn => {
         btn.addEventListener('click', () => reabrirCompendio(btn.dataset.reabrirFila, btn));

@@ -183,24 +183,59 @@
     font-family: 'Inter', sans-serif;
   }
 
-  .modulos-nav { display: flex; gap: 6px; flex-wrap: wrap; }
-  .modulos-nav .modulo-link {
+  /* --- Barra de módulos: FIJA arriba de la pantalla (position: sticky),
+     mismo bloque exacto en las 7 páginas, así nunca cambia de alto ni de
+     posición al navegar. Si los 7 botones no caben se desliza horizontal
+     en vez de hacer wrap — eso es lo que garantiza que el alto sea siempre
+     el mismo. Los botones se ven como botones reales (fondo + borde), no
+     como links de texto. --- */
+  .modulos-nav-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    background: var(--card);
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--card-border);
+    box-shadow: 0 2px 10px rgba(32, 40, 36, 0.06);
+  }
+  .modulos-nav-bar::-webkit-scrollbar { display: none; }
+  .modulos-nav-bar .modulo-btn {
+    flex: none;
     font-family: 'Barlow Condensed', sans-serif;
     font-weight: 700;
-    font-size: 12px;
-    letter-spacing: 0.04em;
+    font-size: 13px;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
     text-decoration: none;
     color: var(--text-dim);
-    border: 1px solid var(--card-border);
-    border-radius: 20px;
-    padding: 7px 14px;
+    background: var(--bg);
+    border: 1.5px solid var(--card-border);
+    border-radius: 10px;
+    padding: 9px 15px;
     white-space: nowrap;
     cursor: default;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   }
-  .modulos-nav a.modulo-link { cursor: pointer; }
-  .modulos-nav a.modulo-link:hover { border-color: var(--tallo); color: var(--tallo); }
-  .modulos-nav .modulo-link.activo { background: var(--tallo); border-color: var(--tallo); color: #fff; }
+  .modulos-nav-bar a.modulo-btn { cursor: pointer; }
+  .modulos-nav-bar a.modulo-btn:hover {
+    border-color: var(--tallo);
+    color: var(--tallo);
+    box-shadow: 0 2px 6px rgba(31, 111, 67, 0.18);
+    transform: translateY(-1px);
+  }
+  .modulos-nav-bar a.modulo-btn:active { transform: translateY(0); }
+  .modulos-nav-bar .modulo-btn.activo {
+    background: var(--tallo);
+    border-color: var(--tallo);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(31, 111, 67, 0.35);
+  }
 
   .usuario-chip {
     font-family: 'Inter', sans-serif;
@@ -478,9 +513,10 @@
   .registro-fila-detalle:last-child { border-bottom: none; }
   .registro-fila-detalle.head { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); font-weight: 700; background: rgba(31,111,67,0.04); }
   .registro-fila-detalle .num { text-align: right; font-variant-numeric: tabular-nums; }
-  .registro-fila-detalle.con-reabrir { grid-template-columns: 70px 1fr 1fr 1fr 70px 70px 80px; min-width: 600px; }
+  .registro-fila-detalle.con-acciones { grid-template-columns: 70px 1fr 1fr 1fr 70px 70px 100px; min-width: 620px; }
   .registro-fila-detalle .btn-chico { white-space: nowrap; }
   .registro-fila > span, .registro-fila-detalle > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .registro-fila-detalle .celda-acciones { display: flex; gap: 5px; flex-wrap: wrap; overflow: visible; white-space: normal; }
 
   .reabrir-panel { margin: 0 20px 20px; padding: 14px 16px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; }
   .reabrir-panel[hidden] { display: none; }
@@ -522,6 +558,16 @@
 
   <div id="app-view" hidden>
 
+    <nav class="modulos-nav-bar">
+      <a class="modulo-btn" href="./index.html">Dashboard</a>
+      <a class="modulo-btn" href="./manifiesto.html">Manifiesto</a>
+      <a class="modulo-btn" href="./vale.html">Vale</a>
+      <a class="modulo-btn" href="./creditos.html">Créditos</a>
+      <a class="modulo-btn" href="./cuentas.html">Cuentas</a>
+      <a class="modulo-btn" href="./pagos.html">Pagos</a>
+      <span class="modulo-btn activo">Facturación</span>
+    </nav>
+
     <div class="top">
       <div>
         <div class="marca">Bodega R-56</div>
@@ -529,15 +575,6 @@
       </div>
       <div class="top-acciones">
         <div class="top-acciones-fila">
-          <nav class="modulos-nav">
-            <a class="modulo-link" href="./index.html">Dashboard</a>
-            <a class="modulo-link" href="./manifiesto.html">Manifiesto</a>
-            <a class="modulo-link" href="./vale.html">Vale</a>
-            <a class="modulo-link" href="./creditos.html">Créditos</a>
-            <a class="modulo-link" href="./cuentas.html">Cuentas</a>
-            <a class="modulo-link" href="./pagos.html">Pagos</a>
-            <span class="modulo-link activo">Facturación</span>
-          </nav>
           <span class="admin-chip" id="admin-chip" hidden>Admin</span>
           <button id="btn-salir" type="button">Salir</button>
         </div>

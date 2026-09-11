@@ -394,6 +394,18 @@ async function abrirModalFactura(pagoId) {
   facturaPagoActual = { pagoId };
   facturaModoEdicion = false;
 
+  // El resumen del pago se pinta de inmediato con lo que ya tenemos en
+  // memoria (pagosListado) — no depende de la llamada a Apps Script, así
+  // el usuario ve desde el primer instante qué pago está facturando.
+  const pagoResumen = pagosListado.find(p => p.id === pagoId);
+  document.getElementById('factura-pago-resumen').innerHTML = pagoResumen ? `
+    <div><span class="k">Cliente del pago</span><span class="v">${pagoResumen.cliente}</span></div>
+    <div><span class="k">Monto</span><span class="v monto">$${fmt(pagoResumen.monto)}</span></div>
+    <div><span class="k">Forma</span><span class="v">${FORMA_LABELS[pagoResumen.forma] || pagoResumen.forma}</span></div>
+    <div><span class="k">Fecha del pago</span><span class="v">${fechaCorta(pagoResumen.fecha)}</span></div>
+    <div><span class="k">Cuenta</span><span class="v">${pagoResumen.cuentaNombre || '— (efectivo)'}</span></div>
+  ` : '';
+
   try {
     const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=factura_calcular_partidas&token=${encodeURIComponent(tokenActual)}&pagoId=${encodeURIComponent(pagoId)}`);
     if (data.error === 'no_autorizado') { await volverALogin(); return; }
