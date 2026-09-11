@@ -190,6 +190,7 @@ let todosVales = [];         // acción "creditos_todos" — vista por default (
 let valesCliente = [];       // acción "creditos_cliente"
 let pagosPendientesCliente = []; // acción "pagos_pendientes_cliente"
 let foliosSeleccionados = []; // orden en que se fueron marcando las casillas
+let pagoIdsSeleccionados = []; // pagos marcados con check en "Pagos pendientes por aplicar"
 let pagoClienteSeleccionado = null; // cliente elegido dentro del modal "Pago de cliente" (independiente del filtro)
 let sincronizando = false;
 let ultimoPagoGuardado = null; // para el botón "Imprimir comprobante" del modal de confirmación
@@ -377,6 +378,7 @@ async function seleccionarClienteFiltro(nombre) {
   document.getElementById('cliente-panel').hidden = false;
   document.getElementById('cliente-nombre-titulo').textContent = nombre;
   foliosSeleccionados = [];
+  pagoIdsSeleccionados = [];
   document.getElementById('vales-lista').innerHTML = '<div class="vales-vacio">Cargando…</div>';
   document.getElementById('pagos-pendientes-lista').innerHTML = '<div class="pagos-pendientes-vacio">Cargando…</div>';
   await Promise.all([cargarCreditosCliente(), cargarPagosPendientesCliente()]);
@@ -387,6 +389,7 @@ document.getElementById('btn-limpiar-cliente').addEventListener('click', () => {
   valesCliente = [];
   pagosPendientesCliente = [];
   foliosSeleccionados = [];
+  pagoIdsSeleccionados = [];
   filtroClienteInput.value = '';
   document.getElementById('cliente-panel').hidden = true;
   document.getElementById('todos-clientes-panel').hidden = false;
@@ -572,31 +575,41 @@ async function quitarAplicacion(aplicacionId, folio) {
 
 function actualizarBarraAplicar() {
   const barra = document.getElementById('aplicar-bar');
-  if (foliosSeleccionados.length === 0) { barra.hidden = true; return; }
+  if (foliosSeleccionados.length === 0 && pagoIdsSeleccionados.length === 0) { barra.hidden = true; return; }
   const totalSaldoVales = foliosSeleccionados.reduce((acc, folio) => {
     const v = valesCliente.find(x => x.folio === folio);
     return acc + (v ? v.saldoPendiente : 0);
   }, 0);
-  const saldoFavor = pagosPendientesCliente.reduce((acc, p) => acc + p.saldoDisponible, 0);
+  const totalPagosMarcados = pagosPendientesCliente
+    .filter(p => pagoIdsSeleccionados.includes(p.id))
+    .reduce((acc, p) => acc + p.saldoDisponible, 0);
   document.getElementById('aplicar-resumen').textContent =
-    `${foliosSeleccionados.length} vale${foliosSeleccionados.length === 1 ? '' : 's'} seleccionado${foliosSeleccionados.length === 1 ? '' : 's'} · saldo pendiente $${fmt(totalSaldoVales)} · saldo a favor disponible $${fmt(saldoFavor)}`;
+    `${foliosSeleccionados.length} vale${foliosSeleccionados.length === 1 ? '' : 's'} seleccionado${foliosSeleccionados.length === 1 ? '' : 's'} · saldo pendiente $${fmt(totalSaldoVales)} · ${pagoIdsSeleccionados.length} pago${pagoIdsSeleccionados.length === 1 ? '' : 's'} marcado${pagoIdsSeleccionados.length === 1 ? '' : 's'} · $${fmt(totalPagosMarcados)}`;
+  const boton = document.getElementById('btn-aplicar-pagos');
+  const listo = foliosSeleccionados.length > 0 && pagoIdsSeleccionados.length > 0;
+  boton.disabled = !listo;
+  boton.title = listo ? '' : 'Marca al menos un vale y al menos un pago para poder aplicar.';
   barra.hidden = false;
 }
 
 document.getElementById('btn-aplicar-pagos').addEventListener('click', async () => {
-  if (!clienteActivo || foliosSeleccionados.length === 0) return;
+  if (!clienteActivo || foliosSeleccionados.length === 0 || pagoIdsSeleccionados.length === 0) return;
   const boton = document.getElementById('btn-aplicar-pagos');
   const textoOriginal = boton.textContent;
   boton.disabled = true;
   boton.textContent = 'Aplicando…';
   try {
     if (!navigator.onLine) throw new Error('sin conexión');
-    const url = `${APPS_SCRIPT_URL}?action=pago_aplicar&token=${encodeURIComponent(tokenActual)}&cliente=${encodeURIComponent(clienteActivo)}&folios=${encodeURIComponent(JSON.stringify(foliosSeleccionados))}`;
-    const data = await llamarJSONP(url);
+    const params = new URLSearchParams({
+      action: 'pago_aplicar', token: tokenActual, cliente: clienteActivo,
+      folios: JSON.stringify(foliosSeleccionados), pagoIds: JSON.stringify(pagoIdsSeleccionados)
+    });
+    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?${params.toString()}`);
     if (data.error === 'no_autorizado') { await volverALogin(); return; }
-    if (!data.ok) throw new Error(data.error || 'No se pudo aplicar el saldo.');
-    mostrarToast('Saldo a favor aplicado correctamente.', 'ok');
+    if (!data.ok) throw new Error(data.error || 'No se pudo aplicar el pago.');
+    mostrarToast('Pago aplicado correctamente.', 'ok');
     foliosSeleccionados = [];
+    pagoIdsSeleccionados = [];
     await Promise.all([cargarCreditosCliente(), cargarPagosPendientesCliente(), cargarTodosLosVales()]);
   } catch (err) {
     mostrarToast(navigator.onLine ? `No se pudo aplicar: ${err.message}` : 'Sin conexión — no se puede aplicar un pago sin conexión. Intenta de nuevo cuando regrese la señal.', 'warn');
@@ -626,23 +639,46 @@ function renderPagosPendientes() {
   const total = pagosPendientesCliente.reduce((acc, p) => acc + p.saldoDisponible, 0);
   document.getElementById('saldo-favor-total').textContent = '$' + fmt(total);
 
+  // Solo se pueden marcar los pagos que sigan teniendo saldo disponible —
+  // si alguno ya se aplicó por completo (o se eliminó) desde otra pestaña,
+  // se quita solo de la selección en vez de tronar.
+  const idsVigentes = {};
+  pagosPendientesCliente.forEach(p => { idsVigentes[p.id] = true; });
+  pagoIdsSeleccionados = pagoIdsSeleccionados.filter(id => idsVigentes[id]);
+
   const cont = document.getElementById('pagos-pendientes-lista');
   if (pagosPendientesCliente.length === 0) {
     cont.innerHTML = '<div class="pagos-pendientes-vacio">Este cliente no tiene saldo a favor por aplicar.</div>';
     actualizarBarraAplicar();
     return;
   }
-  cont.innerHTML = pagosPendientesCliente.map(p => `
+  cont.innerHTML = `
+    <div class="pagos-pendientes-caption">Marca los pagos que quieres aplicar — solo se tocan los que marques.</div>
+    ${pagosPendientesCliente.map(p => `
     <div class="pago-pendiente-fila">
-      <div>
-        <div class="monto">$${fmt(p.saldoDisponible)}</div>
-        <div class="meta">${FORMA_LABELS[p.forma] || p.forma} · ${fechaCorta(p.fecha)}${p.aplicado > 0 ? ' · ya aplicado: $' + fmt(p.aplicado) : ''}</div>
-      </div>
+      <label class="pago-pendiente-check">
+        <input type="checkbox" data-pago-check="${p.id}" ${pagoIdsSeleccionados.includes(p.id) ? 'checked' : ''}>
+        <div>
+          <div class="monto">$${fmt(p.saldoDisponible)}</div>
+          <div class="meta">${FORMA_LABELS[p.forma] || p.forma} · ${fechaCorta(p.fecha)}${p.aplicado > 0 ? ' · ya aplicado: $' + fmt(p.aplicado) : ''}</div>
+        </div>
+      </label>
       ${usuarioRol === 'admin' ? `<button class="btn-eliminar-pago" data-pago-id="${p.id}" title="Eliminar este pago por completo">🗑</button>` : ''}
     </div>
-  `).join('');
+  `).join('')}`;
   actualizarBarraAplicar();
 }
+
+document.getElementById('pagos-pendientes-lista').addEventListener('change', (e) => {
+  const pagoId = e.target.dataset.pagoCheck;
+  if (!pagoId) return;
+  if (e.target.checked) {
+    if (!pagoIdsSeleccionados.includes(pagoId)) pagoIdsSeleccionados.push(pagoId);
+  } else {
+    pagoIdsSeleccionados = pagoIdsSeleccionados.filter(id => id !== pagoId);
+  }
+  actualizarBarraAplicar();
+});
 
 document.getElementById('pagos-pendientes-lista').addEventListener('click', async (e) => {
   const pagoId = e.target.closest('.btn-eliminar-pago')?.dataset.pagoId;

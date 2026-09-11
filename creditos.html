@@ -512,10 +512,13 @@
   #saldo-favor-total {
     font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px; color: var(--tallo); margin-bottom: 10px;
   }
+  .pagos-pendientes-caption { color: var(--text-dim); font-size: 11px; padding: 0 0 8px; line-height: 1.4; }
   .pago-pendiente-fila {
     display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
   }
   .pago-pendiente-fila:last-child { border-bottom: none; }
+  .pago-pendiente-check { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; min-width: 0; }
+  .pago-pendiente-check input[type="checkbox"] { width: 17px; height: 17px; flex: none; accent-color: var(--tallo); cursor: pointer; }
   .pago-pendiente-fila .monto { font-weight: 700; }
   .pago-pendiente-fila .meta { color: var(--text-dim); font-size: 11.5px; }
   .pago-pendiente-fila .btn-eliminar-pago {
@@ -706,7 +709,7 @@
 
           <div class="aplicar-bar" id="aplicar-bar" hidden>
             <div id="aplicar-resumen"></div>
-            <button class="btn-primario" id="btn-aplicar-pagos" type="button">Aplicar saldo a favor</button>
+            <button class="btn-primario" id="btn-aplicar-pagos" type="button" disabled>Aplicar pago(s) seleccionado(s)</button>
           </div>
         </div>
 

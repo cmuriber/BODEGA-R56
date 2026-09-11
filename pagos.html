@@ -388,40 +388,58 @@
   .pagos-head { margin: 18px 20px 10px; display: flex; justify-content: space-between; align-items: baseline; }
   .pagos-vacio { padding: 30px 20px; text-align: center; color: var(--text-dim); font-size: 13.5px; }
 
-  .pago-card {
-    background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
-    margin: 0 20px 10px; padding: 13px 14px;
+  /* ---------- Listado compacto (mismo criterio que .vale-fila de Créditos) ---------- */
+  .pagos-tabla-wrap { margin: 0 20px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow-x: auto; }
+  .pago-fila {
+    display: grid;
+    grid-template-columns: 18px minmax(110px,1.3fr) 76px 82px 54px minmax(90px,1fr) 90px 138px;
+    gap: 8px; align-items: center; padding: 10px 10px; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
+    min-width: 700px; cursor: pointer;
   }
-  .pago-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-  .pago-cliente { font-weight: 700; font-size: 14.5px; }
-  .pago-meta { font-size: 12px; color: var(--text-dim); margin-top: 3px; }
-  .pago-monto-wrap { text-align: right; flex-shrink: 0; }
-  .pago-monto { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px; font-variant-numeric: tabular-nums; }
+  .pago-fila.head { cursor: default; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); font-weight: 700; background: rgba(31,111,67,0.04); }
+  .pago-fila:last-child { border-bottom: none; }
+  .pago-fila > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pago-fila .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pago-fila:not(.head):hover { background: rgba(0,0,0,0.025); }
+  .pago-fila .chevron { color: var(--text-dim); font-size: 9px; transition: transform 0.15s; }
+  .pago-fila.expandida .chevron { transform: rotate(90deg); }
+  /* Iluminado completo en verde en cuanto el pago queda aplicado — pedido
+     explícito de Mauricio (2026-09-08) para saber de un vistazo qué
+     renglones ya están resueltos. */
+  .pago-fila.aplicado { background: rgba(31,111,67,0.16); }
+  .pago-fila.aplicado:hover { background: rgba(31,111,67,0.24); }
+
+  .pago-detalle {
+    margin: 0 10px 10px; padding: 10px 12px; background: rgba(31,111,67,0.04);
+    border: 1px solid var(--card-border); border-radius: 10px; font-size: 12px;
+  }
+  .pago-detalle[hidden] { display: none; }
+  .pago-detalle-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 16px; }
+  .pago-detalle-grid .k { display: block; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); font-weight: 700; }
+  .pago-detalle-grid .v { display: block; font-size: 13px; margin-top: 2px; }
 
   .badge-forma {
     display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
-    color: #fff; border-radius: 999px; padding: 3px 9px; white-space: nowrap; margin-top: 4px;
+    color: #fff; border-radius: 999px; padding: 3px 9px; white-space: nowrap;
   }
   .badge-forma.efectivo { background: var(--tallo); }
   .badge-forma.transferencia { background: var(--reciente); }
   .badge-forma.cheque { background: var(--dorado); }
 
-  .pago-status-row {
-    margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f2f1;
-    display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
-  }
   .badge-pendiente {
-    font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
-    color: var(--ambar); background: rgba(183,121,31,0.12); border-radius: 999px; padding: 4px 10px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+    color: var(--ambar); background: rgba(183,121,31,0.12); border-radius: 999px; padding: 3px 9px; white-space: nowrap;
   }
   .badge-aplicado {
-    font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
-    color: var(--tallo); background: rgba(31,111,67,0.12); border-radius: 999px; padding: 4px 10px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+    color: var(--tallo); background: rgba(31,111,67,0.18); border-radius: 999px; padding: 3px 9px; white-space: nowrap;
   }
   .badge-factura-pedida {
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.01em;
-    color: var(--text-dim); background: rgba(102,122,112,0.12); border-radius: 999px; padding: 4px 10px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.01em;
+    color: var(--text-dim); background: rgba(102,122,112,0.14); border-radius: 999px; padding: 3px 9px; white-space: nowrap;
   }
+  .factura-vacio { color: var(--text-dim); font-size: 12px; }
+  .pago-fila [data-solicitar-factura] { font-size: 11px; padding: 5px 9px; }
 
   /* ---------- Partidas (tabla de solicitud de factura) ---------- */
   .partidas-tabla { border: 1px solid var(--card-border); border-radius: 10px; overflow: hidden; margin: 8px 0; }

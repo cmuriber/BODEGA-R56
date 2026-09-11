@@ -137,6 +137,7 @@ let usuarioNombre = null;
 let clientesCatalogo = [];  // acción "clientes"
 let pagosListado = [];      // acción "pagos_listado"
 let clienteFiltroActivo = null;
+const pagosExpandidos = new Set(); // ids de pago con el detalle desplegado
 
 // Contexto del modal "Solicitar factura"
 let facturaPagoActual = null;      // { pagoId, monto }
@@ -304,41 +305,84 @@ function renderPagos() {
     cont.innerHTML = '<div class="pagos-vacio">No hay pagos para mostrar.</div>';
     return;
   }
-  cont.innerHTML = pagosListado.map(p => renderPagoCard(p)).join('');
+  cont.innerHTML = `
+    <div class="pagos-tabla-wrap">
+      <div class="pago-fila head">
+        <span></span><span>Cliente</span><span>Monto</span><span>Forma</span><span>Fecha</span><span>Cuenta</span><span>Estado</span><span>Factura</span>
+      </div>
+      ${pagosListado.map(p => renderPagoFila(p)).join('')}
+    </div>
+  `;
 }
 
-function renderPagoCard(p) {
-  let estadoHtml;
-  if (p.statusPago === 'pendiente') {
-    estadoHtml = '<span class="badge-pendiente">Pendiente por aplicar</span>';
+function renderPagoFila(p) {
+  const aplicado = p.statusPago === 'aplicado';
+  const expandida = pagosExpandidos.has(p.id);
+
+  const estadoHtml = aplicado
+    ? '<span class="badge-aplicado">Aplicado</span>'
+    : '<span class="badge-pendiente">Pendiente</span>';
+
+  let facturaHtml;
+  if (!aplicado) {
+    facturaHtml = '<span class="factura-vacio">—</span>';
   } else if (p.statusFactura === 'pedida') {
-    estadoHtml = `<span class="badge-factura-pedida">Factura pedida el ${fechaCorta(p.facturaSolicitada)}</span>`;
+    facturaHtml = `<span class="badge-factura-pedida">Pedida ${fechaCorta(p.facturaSolicitada)}</span>`;
   } else if (p.cuentaId) {
-    estadoHtml = `<span class="badge-aplicado">Aplicado</span><button class="btn-chico dorado" data-solicitar-factura="${p.id}" type="button">Solicitar factura →</button>`;
+    facturaHtml = `<button class="btn-chico dorado" data-solicitar-factura="${p.id}" type="button">Solicitar factura →</button>`;
   } else {
-    estadoHtml = '<span class="badge-aplicado">Aplicado — pago en efectivo</span>';
+    facturaHtml = '<span class="factura-vacio">— (efectivo)</span>';
   }
 
   return `
-    <div class="pago-card" data-pago-id="${p.id}">
-      <div class="pago-card-top">
-        <div>
-          <div class="pago-cliente">${p.cliente}</div>
-          <div class="pago-meta">${fechaCorta(p.fecha)}${p.cuentaNombre ? ' · ' + p.cuentaNombre : ''}${p.agricultor ? ' · ' + p.agricultor : ''}</div>
-        </div>
-        <div class="pago-monto-wrap">
-          <div class="pago-monto">$${fmt(p.monto)}</div>
-          <span class="badge-forma ${p.forma}">${FORMA_LABELS[p.forma] || p.forma}</span>
-        </div>
+    <div class="pago-fila ${aplicado ? 'aplicado' : ''} ${expandida ? 'expandida' : ''}" data-toggle-pago="${p.id}">
+      <span class="chevron">▶</span>
+      <span>${p.cliente}</span>
+      <span class="num">$${fmt(p.monto)}</span>
+      <span><span class="badge-forma ${p.forma}">${FORMA_LABELS[p.forma] || p.forma}</span></span>
+      <span>${fechaCorta(p.fecha)}</span>
+      <span>${p.cuentaNombre || '—'}</span>
+      <span>${estadoHtml}</span>
+      <span>${facturaHtml}</span>
+    </div>
+    ${renderPagoDetalle(p, expandida)}
+  `;
+}
+
+// Desglose que se despliega debajo del renglón al darle clic — pedido
+// explícito de Mauricio (2026-09-08): ver de un vistazo la fecha del pago,
+// a qué cuenta/agricultor se hizo, cuánto ya se aplicó y cuánto le queda.
+function renderPagoDetalle(p, expandida) {
+  return `
+    <div class="pago-detalle" id="pago-detalle-${p.id}" ${expandida ? '' : 'hidden'}>
+      <div class="pago-detalle-grid">
+        <div><span class="k">Cliente</span><span class="v">${p.cliente}</span></div>
+        <div><span class="k">Monto</span><span class="v">$${fmt(p.monto)}</span></div>
+        <div><span class="k">Forma de pago</span><span class="v">${FORMA_LABELS[p.forma] || p.forma}</span></div>
+        <div><span class="k">Fecha del pago</span><span class="v">${fechaCorta(p.fecha)}</span></div>
+        <div><span class="k">Fecha contable</span><span class="v">${fechaCorta(p.fechaContable)}</span></div>
+        <div><span class="k">Cuenta / a quién se hizo</span><span class="v">${p.cuentaNombre ? p.cuentaNombre + (p.agricultor ? ' — ' + p.agricultor : '') : '— (efectivo)'}</span></div>
+        <div><span class="k">Ya aplicado</span><span class="v">$${fmt(p.aplicado)}</span></div>
+        <div><span class="k">Saldo por aplicar</span><span class="v">$${fmt(p.saldoDisponible)}</span></div>
+        ${p.facturaSolicitada ? `<div><span class="k">Factura pedida</span><span class="v">${fechaCorta(p.facturaSolicitada)}</span></div>` : ''}
       </div>
-      <div class="pago-status-row">${estadoHtml}</div>
     </div>
   `;
 }
 
 document.getElementById('pagos-lista').addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-solicitar-factura]');
-  if (btn) { abrirModalFactura(btn.dataset.solicitarFactura); }
+  const btnFactura = e.target.closest('[data-solicitar-factura]');
+  if (btnFactura) { abrirModalFactura(btnFactura.dataset.solicitarFactura); return; }
+
+  const fila = e.target.closest('[data-toggle-pago]');
+  if (!fila) return;
+  const id = fila.dataset.togglePago;
+  const detalle = document.getElementById('pago-detalle-' + id);
+  if (!detalle) return;
+  const abrir = detalle.hidden;
+  detalle.hidden = !abrir;
+  fila.classList.toggle('expandida', abrir);
+  if (abrir) pagosExpandidos.add(id); else pagosExpandidos.delete(id);
 });
 
 // ---------- Modal: Solicitar factura ----------
