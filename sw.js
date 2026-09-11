@@ -4,7 +4,7 @@
 // con IndexedDB (ver app.js, app-manifiesto.js, app-vale.js y
 // app-creditos.js).
 
-const CACHE_NAME = 'r56-dashboard-v45';
+const CACHE_NAME = 'r56-dashboard-v46';
 const SHELL_FILES = [
   './index.html',
   './app.js',
@@ -24,9 +24,24 @@ const SHELL_FILES = [
   './icon.svg'
 ];
 
+// OJO — bug real que causaba que después de actualizar, unas pantallas se
+// vieran con el diseño nuevo y otras con el viejo (según cuál se hubiera
+// recargado con Ctrl+Shift+R): cache.addAll() pedía cada archivo con el
+// caching normal del navegador, así que si el HTML de una página ya
+// estaba en el caché HTTP del navegador (no el nuestro, el de Chrome), el
+// Service Worker guardaba esa copia vieja dentro del cache NUEVO sin
+// darse cuenta. O sea: aunque subiéramos la versión, algunas páginas
+// quedaban "congeladas" en la versión de antes. Por eso cada archivo del
+// shell se pide ahora con { cache: 'reload' } — eso obliga a ir siempre a
+// la red de verdad, nunca al caché HTTP del navegador, para que el
+// contenido que guardamos SIEMPRE sea el más nuevo.
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_FILES))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(SHELL_FILES.map((url) =>
+        fetch(url, { cache: 'reload' }).then((res) => cache.put(url, res))
+      ))
+    )
   );
   self.skipWaiting();
 });
