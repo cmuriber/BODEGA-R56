@@ -386,34 +386,40 @@
   #btn-ver-todos-clientes[hidden] { display: none; }
 
   .pagos-head { margin: 18px 20px 10px; display: flex; justify-content: space-between; align-items: baseline; }
-  .pagos-vacio { padding: 30px 20px; text-align: center; color: var(--text-dim); font-size: 13.5px; }
 
-  /* ---------- Listado compacto (mismo criterio que .vale-fila de Créditos) ---------- */
+  /* ---------- Listado compacto (mismo criterio que .vale-fila de Créditos) ----------
+     Tabla real (no grid por renglón) para que cada columna se dimensione
+     sola al contenido más ancho de TODA la lista — pedido explícito de
+     Mauricio (2026-09-11): la información se debe ver completa, nunca
+     cortada con "...". El wrapper desliza horizontal en pantallas angostas
+     en vez de recortar texto. */
   .pagos-tabla-wrap { margin: 0 20px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow-x: auto; }
-  .pago-fila {
-    display: grid;
-    grid-template-columns: 18px minmax(110px,1.3fr) 76px 82px 54px minmax(90px,1fr) 90px 138px;
-    gap: 8px; align-items: center; padding: 10px 10px; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
-    min-width: 700px; cursor: pointer;
+  .pagos-tabla { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  .pagos-tabla th, .pagos-tabla td { padding: 10px 14px; text-align: left; white-space: nowrap; }
+  .pagos-tabla thead th {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); font-weight: 700;
+    background: rgba(31,111,67,0.04); border-bottom: 1px solid var(--card-border);
   }
-  .pago-fila.head { cursor: default; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); font-weight: 700; background: rgba(31,111,67,0.04); }
-  .pago-fila:last-child { border-bottom: none; }
-  .pago-fila > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pago-fila .num { text-align: right; font-variant-numeric: tabular-nums; }
-  .pago-fila:not(.head):hover { background: rgba(0,0,0,0.025); }
-  .pago-fila .chevron { color: var(--text-dim); font-size: 9px; transition: transform 0.15s; }
+  .pagos-tabla th.num, .pagos-tabla td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pagos-tabla tbody tr.pago-fila { cursor: pointer; }
+  .pagos-tabla tbody tr.pago-fila td { border-bottom: 1px solid #f0f2f1; }
+  .pagos-tabla tbody tr.pago-fila:hover td { background: rgba(0,0,0,0.025); }
+  .pago-fila .chevron { display: inline-block; color: var(--text-dim); font-size: 9px; transition: transform 0.15s; }
   .pago-fila.expandida .chevron { transform: rotate(90deg); }
   /* Iluminado completo en verde en cuanto el pago queda aplicado — pedido
      explícito de Mauricio (2026-09-08) para saber de un vistazo qué
-     renglones ya están resueltos. */
-  .pago-fila.aplicado { background: rgba(31,111,67,0.16); }
-  .pago-fila.aplicado:hover { background: rgba(31,111,67,0.24); }
+     renglones ya están resueltos. Se pinta cada <td> (no el <tr>) para que
+     cubra parejo con border-collapse. */
+  .pagos-tabla tbody tr.pago-fila.aplicado td { background: rgba(31,111,67,0.16); }
+  .pagos-tabla tbody tr.pago-fila.aplicado:hover td { background: rgba(31,111,67,0.24); }
+  .pagos-vacio { white-space: normal; text-align: center; color: var(--text-dim); font-size: 13.5px; padding: 26px 14px; }
 
+  .pago-detalle-row td { padding: 0; border-bottom: 1px solid #f0f2f1; }
+  .pago-detalle-row.oculto { display: none; }
   .pago-detalle {
-    margin: 0 10px 10px; padding: 10px 12px; background: rgba(31,111,67,0.04);
-    border: 1px solid var(--card-border); border-radius: 10px; font-size: 12px;
+    margin: 8px 14px; padding: 10px 12px; background: rgba(31,111,67,0.04);
+    border: 1px solid var(--card-border); border-radius: 10px; font-size: 12px; white-space: normal;
   }
-  .pago-detalle[hidden] { display: none; }
   .pago-detalle-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 16px; }
   .pago-detalle-grid .k { display: block; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); font-weight: 700; }
   .pago-detalle-grid .v { display: block; font-size: 13px; margin-top: 2px; }
@@ -539,7 +545,16 @@
       <div class="seccion-titulo" id="pagos-titulo">Todos los pagos</div>
     </div>
 
-    <div id="pagos-lista"><div class="pagos-vacio">Cargando…</div></div>
+    <div class="pagos-tabla-wrap">
+      <table class="pagos-tabla">
+        <thead>
+          <tr>
+            <th></th><th>Cliente</th><th class="num">Monto</th><th>Forma</th><th>Fecha</th><th>Cuenta</th><th>Estado</th><th>Factura</th>
+          </tr>
+        </thead>
+        <tbody id="pagos-lista"><tr><td colspan="8" class="pagos-vacio">Cargando…</td></tr></tbody>
+      </table>
+    </div>
 
     <div style="height:20px;"></div>
   </div>

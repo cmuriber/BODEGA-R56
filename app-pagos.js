@@ -268,7 +268,7 @@ async function seleccionarClienteFiltro(nombre) {
   clienteFiltroActivo = nombre;
   document.getElementById('btn-ver-todos-clientes').hidden = false;
   document.getElementById('pagos-titulo').textContent = `Pagos de ${nombre}`;
-  document.getElementById('pagos-lista').innerHTML = '<div class="pagos-vacio">Cargando…</div>';
+  document.getElementById('pagos-lista').innerHTML = '<tr><td colspan="8" class="pagos-vacio">Cargando…</td></tr>';
   await cargarPagos();
 }
 
@@ -300,21 +300,17 @@ async function cargarPagos() {
 }
 
 function renderPagos() {
-  const cont = document.getElementById('pagos-lista');
+  const cont = document.getElementById('pagos-lista'); // <tbody>
   if (pagosListado.length === 0) {
-    cont.innerHTML = '<div class="pagos-vacio">No hay pagos para mostrar.</div>';
+    cont.innerHTML = '<tr><td colspan="8" class="pagos-vacio">No hay pagos para mostrar.</td></tr>';
     return;
   }
-  cont.innerHTML = `
-    <div class="pagos-tabla-wrap">
-      <div class="pago-fila head">
-        <span></span><span>Cliente</span><span>Monto</span><span>Forma</span><span>Fecha</span><span>Cuenta</span><span>Estado</span><span>Factura</span>
-      </div>
-      ${pagosListado.map(p => renderPagoFila(p)).join('')}
-    </div>
-  `;
+  cont.innerHTML = pagosListado.map(p => renderPagoFila(p)).join('');
 }
 
+// Tabla real (no divs de grid): cada columna se dimensiona sola al
+// contenido más ancho de TODA la lista, así nada se corta con "..." —
+// pedido explícito de Mauricio (2026-09-11).
 function renderPagoFila(p) {
   const aplicado = p.statusPago === 'aplicado';
   const expandida = pagosExpandidos.has(p.id);
@@ -335,26 +331,28 @@ function renderPagoFila(p) {
   }
 
   return `
-    <div class="pago-fila ${aplicado ? 'aplicado' : ''} ${expandida ? 'expandida' : ''}" data-toggle-pago="${p.id}">
-      <span class="chevron">▶</span>
-      <span>${p.cliente}</span>
-      <span class="num">$${fmt(p.monto)}</span>
-      <span><span class="badge-forma ${p.forma}">${FORMA_LABELS[p.forma] || p.forma}</span></span>
-      <span>${fechaCorta(p.fecha)}</span>
-      <span>${p.cuentaNombre || '—'}</span>
-      <span>${estadoHtml}</span>
-      <span>${facturaHtml}</span>
-    </div>
-    ${renderPagoDetalle(p, expandida)}
+    <tr class="pago-fila ${aplicado ? 'aplicado' : ''} ${expandida ? 'expandida' : ''}" data-toggle-pago="${p.id}">
+      <td><span class="chevron">▶</span></td>
+      <td>${p.cliente}</td>
+      <td class="num">$${fmt(p.monto)}</td>
+      <td><span class="badge-forma ${p.forma}">${FORMA_LABELS[p.forma] || p.forma}</span></td>
+      <td>${fechaCorta(p.fecha)}</td>
+      <td>${p.cuentaNombre || '—'}</td>
+      <td>${estadoHtml}</td>
+      <td>${facturaHtml}</td>
+    </tr>
+    <tr class="pago-detalle-row ${expandida ? '' : 'oculto'}" id="pago-detalle-row-${p.id}">
+      <td colspan="8">${renderPagoDetalle(p)}</td>
+    </tr>
   `;
 }
 
 // Desglose que se despliega debajo del renglón al darle clic — pedido
 // explícito de Mauricio (2026-09-08): ver de un vistazo la fecha del pago,
 // a qué cuenta/agricultor se hizo, cuánto ya se aplicó y cuánto le queda.
-function renderPagoDetalle(p, expandida) {
+function renderPagoDetalle(p) {
   return `
-    <div class="pago-detalle" id="pago-detalle-${p.id}" ${expandida ? '' : 'hidden'}>
+    <div class="pago-detalle">
       <div class="pago-detalle-grid">
         <div><span class="k">Cliente</span><span class="v">${p.cliente}</span></div>
         <div><span class="k">Monto</span><span class="v">$${fmt(p.monto)}</span></div>
@@ -377,10 +375,10 @@ document.getElementById('pagos-lista').addEventListener('click', (e) => {
   const fila = e.target.closest('[data-toggle-pago]');
   if (!fila) return;
   const id = fila.dataset.togglePago;
-  const detalle = document.getElementById('pago-detalle-' + id);
-  if (!detalle) return;
-  const abrir = detalle.hidden;
-  detalle.hidden = !abrir;
+  const detalleRow = document.getElementById('pago-detalle-row-' + id);
+  if (!detalleRow) return;
+  const abrir = detalleRow.classList.contains('oculto');
+  detalleRow.classList.toggle('oculto', !abrir);
   fila.classList.toggle('expandida', abrir);
   if (abrir) pagosExpandidos.add(id); else pagosExpandidos.delete(id);
 });
