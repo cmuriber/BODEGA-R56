@@ -446,7 +446,7 @@ document.getElementById('proveedor-buscar').addEventListener('click', async () =
 
   const boton = document.getElementById('proveedor-buscar');
   boton.disabled = true; boton.textContent = 'Buscando…';
-  document.getElementById('proveedor-lista').innerHTML = '<tr><td colspan="8" class="reportes-vacio">Cargando…</td></tr>';
+  document.getElementById('proveedor-lista').innerHTML = '<tr><td colspan="11" class="reportes-vacio">Cargando…</td></tr>';
   try {
     const url = `${APPS_SCRIPT_URL}?action=reporte_ventas&token=${encodeURIComponent(tokenActual)}&agricultor=${encodeURIComponent(agricultor)}&desde=${desde}&hasta=${hasta}`;
     const data = await llamarJSONP(url);
@@ -466,7 +466,7 @@ function renderProveedor() {
   const cont = document.getElementById('proveedor-lista');
   const resumen = document.getElementById('proveedor-resumen');
   if (proveedorLineasActuales.length === 0) {
-    cont.innerHTML = '<tr><td colspan="8" class="reportes-vacio">Ese proveedor no tiene ventas en ese rango de fechas.</td></tr>';
+    cont.innerHTML = '<tr><td colspan="11" class="reportes-vacio">Ese proveedor no tiene ventas en ese rango de fechas.</td></tr>';
     resumen.hidden = true;
     return;
   }
@@ -484,6 +484,9 @@ function renderProveedor() {
       <td>${folioStr(l.folio)}</td>
       <td>${l.cliente}</td>
       <td>${l.carro || '—'}</td>
+      <td>${l.invernadero || '—'}</td>
+      <td>${l.letra || '—'}</td>
+      <td>${l.semilla || '—'}</td>
       <td>${l.tamano}</td>
       <td class="num">${fmt(l.cajas)}</td>
       <td class="num">$${fmt(l.precio)}</td>
@@ -495,8 +498,8 @@ function renderProveedor() {
 document.getElementById('proveedor-exportar').addEventListener('click', () => {
   if (proveedorLineasActuales.length === 0) { mostrarToast('No hay nada que exportar.', 'warn'); return; }
   const agricultor = proveedorInput.value.trim() || 'proveedor';
-  exportarCSV(`ventas_${agricultor}.csv`, ['Fecha', 'Folio', 'Cliente', 'Carro', 'Tamaño', 'Cajas', 'Precio', 'Total'],
-    proveedorLineasActuales.map(l => [l.fecha, folioStr(l.folio), l.cliente, l.carro, l.tamano, l.cajas, l.precio, l.total]));
+  exportarCSV(`ventas_${agricultor}.csv`, ['Fecha', 'Folio', 'Cliente', 'Carro', 'Invernadero', 'Letra', 'Semilla', 'Tamaño', 'Cajas', 'Precio', 'Total'],
+    proveedorLineasActuales.map(l => [l.fecha, folioStr(l.folio), l.cliente, l.carro, l.invernadero, l.letra, l.semilla, l.tamano, l.cajas, l.precio, l.total]));
 });
 
 // ================= Por camión y agricultor (cualquier fecha) =================
@@ -598,7 +601,7 @@ async function cargarVentasCamion() {
     renderCamion();
     return;
   }
-  document.getElementById('camion-lista').innerHTML = '<tr><td colspan="8" class="reportes-vacio">Cargando…</td></tr>';
+  document.getElementById('camion-lista').innerHTML = '<tr><td colspan="11" class="reportes-vacio">Cargando…</td></tr>';
   try {
     const ids = Array.from(camionSeleccionados).join(',');
     const url = `${APPS_SCRIPT_URL}?action=reporte_ventas&token=${encodeURIComponent(tokenActual)}&manifiestoIds=${encodeURIComponent(ids)}`;
@@ -618,13 +621,13 @@ function renderCamion() {
   const resumen = document.getElementById('camion-resumen');
   const btnExportar = document.getElementById('camion-exportar');
   if (camionSeleccionados.size === 0) {
-    cont.innerHTML = '<tr><td colspan="8" class="reportes-vacio">Elige un proveedor y marca uno o varios camiones.</td></tr>';
+    cont.innerHTML = '<tr><td colspan="11" class="reportes-vacio">Elige un proveedor y marca uno o varios camiones.</td></tr>';
     resumen.hidden = true;
     btnExportar.hidden = true;
     return;
   }
   if (camionLineasActuales.length === 0) {
-    cont.innerHTML = '<tr><td colspan="8" class="reportes-vacio">Los camiones marcados todavía no tienen ventas registradas.</td></tr>';
+    cont.innerHTML = '<tr><td colspan="11" class="reportes-vacio">Los camiones marcados todavía no tienen ventas registradas.</td></tr>';
     resumen.hidden = true;
     btnExportar.hidden = true;
     return;
@@ -645,6 +648,9 @@ function renderCamion() {
       <td>${l.carro || '—'}</td>
       <td>${folioStr(l.folio)}</td>
       <td>${l.cliente}</td>
+      <td>${l.invernadero || '—'}</td>
+      <td>${l.letra || '—'}</td>
+      <td>${l.semilla || '—'}</td>
       <td>${l.tamano}</td>
       <td class="num">${fmt(l.cajas)}</td>
       <td class="num">$${fmt(l.precio)}</td>
@@ -656,8 +662,8 @@ function renderCamion() {
 document.getElementById('camion-exportar').addEventListener('click', () => {
   if (camionLineasActuales.length === 0) { mostrarToast('No hay nada que exportar.', 'warn'); return; }
   const agricultor = camionSelect.value || 'camiones';
-  exportarCSV(`ventas_${agricultor}.csv`, ['Fecha', 'Carro', 'Folio', 'Cliente', 'Tamaño', 'Cajas', 'Precio', 'Total'],
-    camionLineasActuales.map(l => [l.fecha, l.carro, folioStr(l.folio), l.cliente, l.tamano, l.cajas, l.precio, l.total]));
+  exportarCSV(`ventas_${agricultor}.csv`, ['Fecha', 'Carro', 'Folio', 'Cliente', 'Invernadero', 'Letra', 'Semilla', 'Tamaño', 'Cajas', 'Precio', 'Total'],
+    camionLineasActuales.map(l => [l.fecha, l.carro, folioStr(l.folio), l.cliente, l.invernadero, l.letra, l.semilla, l.tamano, l.cajas, l.precio, l.total]));
 });
 
 // ================= Top clientes =================
