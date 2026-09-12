@@ -145,7 +145,6 @@ let tokenActual = null;
 let usuarioRol = null;
 let usuarioNombre = null;
 let agricultoresCatalogo = []; // acción "agricultores_con_carros"
-let camionSeleccionado = null; // { id, carro, agricultor, fecha } — de "Por camión"
 
 // ---------- Sesión / Login (idéntico patrón a los demás módulos) ----------
 
@@ -181,7 +180,7 @@ async function iniciarSesionConToken(token, rol, nombre) {
   document.getElementById('clientes-desde').value = hoy;
   document.getElementById('clientes-hasta').value = hoy;
 
-  cargarAgricultores();
+  cargarAgricultores().then(llenarSelectProveedoresCamion);
   cargarVentasDia(hoy);
 }
 
@@ -501,50 +500,108 @@ document.getElementById('proveedor-exportar').addEventListener('click', () => {
 });
 
 // ================= Por camión y agricultor (cualquier fecha) =================
+// Flujo pedido por Mauricio (2026-09-12): primero eliges el proveedor de un
+// desplegable, y según ese proveedor aparece la lista de SUS camiones (de
+// cualquier fecha) como checklist — puedes marcar uno o varios a la vez y
+// el reporte junta las ventas de todos los marcados.
 
-const camionInput = document.getElementById('camion-input');
-let camionBuscarTimer = null;
-camionInput.addEventListener('input', () => {
-  clearTimeout(camionBuscarTimer);
-  const q = camionInput.value.trim();
-  if (q.length < 2) { document.getElementById('camion-resultados').innerHTML = ''; return; }
-  camionBuscarTimer = setTimeout(() => buscarCamiones(q), 300);
-});
+const camionSelect = document.getElementById('camion-agricultor-select');
+let camionesDelProveedor = [];   // últimos manifiestos cargados para el proveedor elegido
+const camionSeleccionados = new Set(); // ids de manifiesto marcados en el checklist
 
-async function buscarCamiones(q) {
-  const cont = document.getElementById('camion-resultados');
-  cont.innerHTML = '<div class="reportes-vacio">Buscando…</div>';
-  try {
-    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=manifiestos_buscar&token=${encodeURIComponent(tokenActual)}&q=${encodeURIComponent(q)}`);
-    if (data.error === 'no_autorizado') { await volverALogin(); return; }
-    if (!data.ok || (data.manifiestos || []).length === 0) { cont.innerHTML = '<div class="reportes-vacio">Sin resultados.</div>'; return; }
-    cont.innerHTML = data.manifiestos.slice(0, 15).map(m => `
-      <div class="camion-opt" data-manifiesto-id="${m.id}" data-carro="${m.carro}" data-agricultor="${m.agricultor}" data-fecha="${m.fecha}">
-        <div><div class="carro">Carro ${m.carro} · ${m.agricultor}</div><div class="meta">${fechaCorta(m.fecha)} · ${m.estado}</div></div>
-        <div class="meta">${fmt(m.cajasVendidas)}/${fmt(m.cajasTotales)} cajas</div>
-      </div>
-    `).join('');
-  } catch (err) {
-    cont.innerHTML = '<div class="reportes-vacio">Sin conexión — no se pudo buscar.</div>';
-  }
+function llenarSelectProveedoresCamion() {
+  const actual = camionSelect.value;
+  camionSelect.innerHTML = '<option value="">Elige un proveedor…</option>'
+    + agricultoresCatalogo.map(n => `<option value="${n}">${n}</option>`).join('');
+  if (actual && agricultoresCatalogo.includes(actual)) camionSelect.value = actual;
 }
 
-document.getElementById('camion-resultados').addEventListener('click', (e) => {
-  const opt = e.target.closest('[data-manifiesto-id]');
-  if (!opt) return;
-  document.querySelectorAll('#camion-resultados .camion-opt').forEach(o => o.classList.remove('activo'));
-  opt.classList.add('activo');
-  camionSeleccionado = { id: opt.dataset.manifiestoId, carro: opt.dataset.carro, agricultor: opt.dataset.agricultor, fecha: opt.dataset.fecha };
+camionSelect.addEventListener('change', () => {
+  camionSeleccionados.clear();
+  const agricultor = camionSelect.value;
+  if (!agricultor) {
+    camionesDelProveedor = [];
+    document.getElementById('camion-resultados').innerHTML = '';
+    renderCamion();
+    return;
+  }
+  cargarCamionesDeProveedor(agricultor);
+});
+
+async function cargarCamionesDeProveedor(agricultor) {
+  const cont = document.getElementById('camion-resultados');
+  cont.innerHTML = '<div class="reportes-vacio">Cargando camiones…</div>';
+  try {
+    // manifiestos_buscar filtra por substring en Agricultor O Carro — se
+    // filtra otra vez aquí por coincidencia EXACTA de agricultor para no
+    // arrastrar por accidente algún carro cuyo número calce con el texto.
+    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=manifiestos_buscar&token=${encodeURIComponent(tokenActual)}&q=${encodeURIComponent(agricultor)}`);
+    if (data.error === 'no_autorizado') { await volverALogin(); return; }
+    camionesDelProveedor = (data.manifiestos || []).filter(m => m.agricultor === agricultor);
+  } catch (err) {
+    cont.innerHTML = '<div class="reportes-vacio">Sin conexión — no se pudieron cargar los camiones.</div>';
+    camionesDelProveedor = [];
+    return;
+  }
+  renderChecklistCamiones();
+  renderCamion();
+}
+
+function renderChecklistCamiones() {
+  const cont = document.getElementById('camion-resultados');
+  if (camionesDelProveedor.length === 0) {
+    cont.innerHTML = '<div class="reportes-vacio">Este proveedor no tiene camiones registrados.</div>';
+    return;
+  }
+  cont.innerHTML = `
+    <div class="camion-check-caption">
+      Marca uno o varios camiones —
+      <button class="btn-texto" id="camion-marcar-todos" type="button">Marcar todos</button> ·
+      <button class="btn-texto" id="camion-marcar-ninguno" type="button">Ninguno</button>
+    </div>
+    ${camionesDelProveedor.map(m => `
+      <label class="camion-check-fila ${camionSeleccionados.has(m.id) ? 'marcado' : ''}">
+        <input type="checkbox" data-camion-id="${m.id}" data-carro="${m.carro}" ${camionSeleccionados.has(m.id) ? 'checked' : ''}>
+        <div>
+          <div class="carro">Carro ${m.carro}</div>
+          <div class="meta">${fechaCorta(m.fecha)} · ${m.estado} · ${fmt(m.cajasVendidas)}/${fmt(m.cajasTotales)} cajas</div>
+        </div>
+      </label>
+    `).join('')}
+  `;
+  document.getElementById('camion-marcar-todos').addEventListener('click', () => {
+    camionesDelProveedor.forEach(m => camionSeleccionados.add(m.id));
+    renderChecklistCamiones();
+    cargarVentasCamion();
+  });
+  document.getElementById('camion-marcar-ninguno').addEventListener('click', () => {
+    camionSeleccionados.clear();
+    renderChecklistCamiones();
+    cargarVentasCamion();
+  });
+}
+
+document.getElementById('camion-resultados').addEventListener('change', (e) => {
+  const check = e.target.closest('[data-camion-id]');
+  if (!check) return;
+  if (check.checked) camionSeleccionados.add(check.dataset.camionId);
+  else camionSeleccionados.delete(check.dataset.camionId);
+  check.closest('.camion-check-fila').classList.toggle('marcado', check.checked);
   cargarVentasCamion();
 });
 
 let camionLineasActuales = [];
 
 async function cargarVentasCamion() {
-  if (!camionSeleccionado) return;
-  document.getElementById('camion-lista').innerHTML = '<tr><td colspan="7" class="reportes-vacio">Cargando…</td></tr>';
+  if (camionSeleccionados.size === 0) {
+    camionLineasActuales = [];
+    renderCamion();
+    return;
+  }
+  document.getElementById('camion-lista').innerHTML = '<tr><td colspan="8" class="reportes-vacio">Cargando…</td></tr>';
   try {
-    const url = `${APPS_SCRIPT_URL}?action=reporte_ventas&token=${encodeURIComponent(tokenActual)}&manifiestoId=${encodeURIComponent(camionSeleccionado.id)}`;
+    const ids = Array.from(camionSeleccionados).join(',');
+    const url = `${APPS_SCRIPT_URL}?action=reporte_ventas&token=${encodeURIComponent(tokenActual)}&manifiestoIds=${encodeURIComponent(ids)}`;
     const data = await llamarJSONP(url);
     if (data.error === 'no_autorizado') { await volverALogin(); return; }
     if (!data.ok) { mostrarToast(data.error || 'No se pudo cargar el reporte.', 'error'); camionLineasActuales = []; }
@@ -560,8 +617,14 @@ function renderCamion() {
   const cont = document.getElementById('camion-lista');
   const resumen = document.getElementById('camion-resumen');
   const btnExportar = document.getElementById('camion-exportar');
+  if (camionSeleccionados.size === 0) {
+    cont.innerHTML = '<tr><td colspan="8" class="reportes-vacio">Elige un proveedor y marca uno o varios camiones.</td></tr>';
+    resumen.hidden = true;
+    btnExportar.hidden = true;
+    return;
+  }
   if (camionLineasActuales.length === 0) {
-    cont.innerHTML = '<tr><td colspan="7" class="reportes-vacio">Ese camión todavía no tiene ventas registradas.</td></tr>';
+    cont.innerHTML = '<tr><td colspan="8" class="reportes-vacio">Los camiones marcados todavía no tienen ventas registradas.</td></tr>';
     resumen.hidden = true;
     btnExportar.hidden = true;
     return;
@@ -571,6 +634,7 @@ function renderCamion() {
   resumen.hidden = false;
   btnExportar.hidden = false;
   resumen.innerHTML = `
+    <div class="stat"><span class="k">Camiones</span><span class="v">${camionSeleccionados.size}</span></div>
     <div class="stat"><span class="k">Partidas</span><span class="v">${camionLineasActuales.length}</span></div>
     <div class="stat"><span class="k">Cajas vendidas</span><span class="v">${fmt(cajas)}</span></div>
     <div class="stat"><span class="k">Total</span><span class="v">$${fmt(total)}</span></div>
@@ -578,6 +642,7 @@ function renderCamion() {
   cont.innerHTML = camionLineasActuales.map(l => `
     <tr>
       <td>${fechaCorta(l.fecha)}</td>
+      <td>${l.carro || '—'}</td>
       <td>${folioStr(l.folio)}</td>
       <td>${l.cliente}</td>
       <td>${l.tamano}</td>
@@ -590,9 +655,9 @@ function renderCamion() {
 
 document.getElementById('camion-exportar').addEventListener('click', () => {
   if (camionLineasActuales.length === 0) { mostrarToast('No hay nada que exportar.', 'warn'); return; }
-  const nombre = camionSeleccionado ? `ventas_carro_${camionSeleccionado.carro}.csv` : 'ventas_camion.csv';
-  exportarCSV(nombre, ['Fecha', 'Folio', 'Cliente', 'Tamaño', 'Cajas', 'Precio', 'Total'],
-    camionLineasActuales.map(l => [l.fecha, folioStr(l.folio), l.cliente, l.tamano, l.cajas, l.precio, l.total]));
+  const agricultor = camionSelect.value || 'camiones';
+  exportarCSV(`ventas_${agricultor}.csv`, ['Fecha', 'Carro', 'Folio', 'Cliente', 'Tamaño', 'Cajas', 'Precio', 'Total'],
+    camionLineasActuales.map(l => [l.fecha, l.carro, folioStr(l.folio), l.cliente, l.tamano, l.cajas, l.precio, l.total]));
 });
 
 // ================= Top clientes =================

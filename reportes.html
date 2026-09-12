@@ -324,11 +324,13 @@
   .campo-inline label {
     font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim);
   }
-  .campo-inline input[type=date], .campo-inline input[type=text] {
+  .campo-inline input[type=date], .campo-inline input[type=text], .campo-inline select {
     background: #fafbfa; border: 1px solid var(--card-border); border-radius: 9px;
     padding: 9px 10px; font-size: 14px; color: var(--text); font-family: 'Inter', sans-serif;
   }
-  .campo-inline input:focus { outline: none; border-color: var(--dorado); }
+  .campo-inline input:focus, .campo-inline select:focus { outline: none; border-color: var(--dorado); }
+  .campo-inline.ancho { flex: 1; }
+  .campo-inline.ancho select { width: 100%; }
 
   .cliente-campo { margin: 14px 20px 0; position: relative; }
   .cliente-campo label {
@@ -399,15 +401,16 @@
   .fila-editar-btn:hover { border-color: var(--tallo); color: var(--tallo); }
 
   .camion-resultados { margin: 10px 20px 0; }
-  .camion-opt {
-    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  .camion-check-caption { font-size: 11.5px; color: var(--text-dim); margin: 0 0 8px; line-height: 1.5; }
+  .camion-check-fila {
+    display: flex; align-items: center; gap: 12px;
     background: var(--card); border: 1px solid var(--card-border); border-radius: 10px;
     padding: 10px 12px; margin-bottom: 8px; cursor: pointer; font-size: 13px;
   }
-  .camion-opt:hover { border-color: var(--tallo); }
-  .camion-opt.activo { border-color: var(--tallo); background: rgba(31,111,67,0.06); }
-  .camion-opt .carro { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; }
-  .camion-opt .meta { color: var(--text-dim); font-size: 12px; }
+  .camion-check-fila:has(input:checked), .camion-check-fila.marcado { border-color: var(--tallo); background: rgba(31,111,67,0.06); }
+  .camion-check-fila input[type=checkbox] { width: 17px; height: 17px; flex: none; accent-color: var(--tallo); cursor: pointer; }
+  .camion-check-fila .carro { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; }
+  .camion-check-fila .meta { color: var(--text-dim); font-size: 12px; }
 
   /* ---------- Layout ancho en PC (mismo criterio que los demás módulos) ---------- */
   @media (min-width: 860px) {
@@ -537,10 +540,12 @@
 
     <!-- ---------- Por camión y agricultor (cualquier fecha) ---------- -->
     <section class="reportes-panel" id="panel-camion" hidden>
-      <div class="cliente-campo">
-        <label>Buscar camión (número de carro o proveedor, cualquier fecha)</label>
-        <div class="cliente-campo-fila">
-          <input type="text" id="camion-input" placeholder="Ej. 230 o Ramón…" autocomplete="off">
+      <div class="reportes-filtros">
+        <div class="campo-inline ancho">
+          <label>Proveedor (agricultor)</label>
+          <select id="camion-agricultor-select">
+            <option value="">Elige un proveedor…</option>
+          </select>
         </div>
       </div>
       <div class="camion-resultados" id="camion-resultados"></div>
@@ -548,8 +553,8 @@
       <div class="reportes-acciones-tabla"><button class="btn-texto" id="camion-exportar" type="button" hidden>⬇ Exportar CSV</button></div>
       <div class="reportes-tabla-wrap">
         <table class="reportes-tabla">
-          <thead><tr><th>Fecha</th><th>Folio</th><th>Cliente</th><th>Tamaño</th><th class="num">Cajas</th><th class="num">Precio</th><th class="num">Total</th></tr></thead>
-          <tbody id="camion-lista"><tr><td colspan="7" class="reportes-vacio">Busca y elige un camión arriba.</td></tr></tbody>
+          <thead><tr><th>Fecha</th><th>Carro</th><th>Folio</th><th>Cliente</th><th>Tamaño</th><th class="num">Cajas</th><th class="num">Precio</th><th class="num">Total</th></tr></thead>
+          <tbody id="camion-lista"><tr><td colspan="8" class="reportes-vacio">Elige un proveedor y marca uno o varios camiones.</td></tr></tbody>
         </table>
       </div>
     </section>
