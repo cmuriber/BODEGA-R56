@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6f43">
+<title>Bodega R-56 — Reporte de Ventas</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3f5f4;
+    --card: #ffffff;
+    --card-border: #dfe4e1;
+    --tomate: #c0392b;
+    --tomate-dim: #96301f;
+    --tallo: #1f6f43;
+    --ambar: #b7791f;
+    --dorado: #b7791f;
+    --dorado-dim: #8a6a1f;
+    --reciente: #3b6ea5;
+    --reciente-dim: #2c5580;
+    --text: #202824;
+    --text-dim: #667a70;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(24px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Login (idéntico a los demás módulos) ---------- */
+  #login-view {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(183,121,31,0.06), transparent 60%),
+      var(--bg);
+  }
+  #login-view[hidden] { display: none; }
+
+  .login-card {
+    width: 100%;
+    max-width: 360px;
+    background: linear-gradient(165deg, #ffffff 0%, #fafbfa 100%);
+    border: 1px solid rgba(183,121,31,0.25);
+    border-radius: 18px;
+    padding: 36px 28px 28px;
+    position: relative;
+    box-shadow: 0 12px 32px rgba(23,85,52,0.12), 0 2px 8px rgba(23,85,52,0.08);
+  }
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 56px; height: 3px;
+    border-radius: 0 0 4px 4px;
+    background: linear-gradient(90deg, var(--dorado-dim), var(--dorado));
+  }
+
+  .login-eyebrow {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--dorado);
+    text-align: center;
+    font-weight: 700;
+  }
+  .login-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 30px;
+    font-weight: 700;
+    text-align: center;
+    margin: 6px 0 4px;
+    color: var(--text);
+  }
+  .login-sub {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 26px;
+  }
+
+  .login-field { margin-bottom: 16px; }
+  .login-field label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .login-field input {
+    width: 100%;
+    background: #fafbfa;
+    border: 1px solid rgba(183,121,31,0.2);
+    border-radius: 10px;
+    padding: 13px 14px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+  }
+  .login-field input:focus {
+    outline: none;
+    border-color: var(--dorado);
+  }
+
+  #login-error {
+    color: #c0392b;
+    font-size: 13px;
+    text-align: center;
+    margin: -4px 0 14px;
+    min-height: 16px;
+  }
+
+  button#login-submit {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1f6f43, #175534);
+    color: #fff;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  button#login-submit:disabled { opacity: 0.6; }
+
+  /* ---------- Barra superior (idéntico patrón a los demás módulos) ---------- */
+  #app-view[hidden] { display: none; }
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px 20px 8px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .marca {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .titulo-modulo { font-size: 18px; font-weight: 600; margin-top: 4px; }
+
+  .top-acciones { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .top-acciones-fila { display: flex; align-items: center; gap: 10px; }
+  .top-acciones a, .top-acciones button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 13px;
+    padding: 6px 0;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* --- Barra de módulos: FIJA arriba de la pantalla (position: sticky),
+     mismo bloque exacto en las 8 páginas, así nunca cambia de alto ni de
+     posición al navegar. Si los botones no caben se desliza horizontal en
+     vez de hacer wrap — eso es lo que garantiza que el alto sea siempre el
+     mismo. Los botones se ven como botones reales (fondo + borde), no como
+     links de texto. --- */
+  .modulos-nav-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    background: var(--card);
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--card-border);
+    box-shadow: 0 2px 10px rgba(32, 40, 36, 0.06);
+  }
+  .modulos-nav-bar::-webkit-scrollbar { display: none; }
+  .modulos-nav-bar .modulo-btn {
+    flex: none;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--text-dim);
+    background: var(--bg);
+    border: 1.5px solid var(--card-border);
+    border-radius: 10px;
+    padding: 9px 15px;
+    white-space: nowrap;
+    cursor: default;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+  .modulos-nav-bar a.modulo-btn { cursor: pointer; }
+  .modulos-nav-bar a.modulo-btn:hover {
+    border-color: var(--tallo);
+    color: var(--tallo);
+    box-shadow: 0 2px 6px rgba(31, 111, 67, 0.18);
+    transform: translateY(-1px);
+  }
+  .modulos-nav-bar a.modulo-btn:active { transform: translateY(0); }
+  .modulos-nav-bar .modulo-btn.activo {
+    background: var(--tallo);
+    border-color: var(--tallo);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(31, 111, 67, 0.35);
+  }
+
+  .usuario-chip {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .usuario-chip::before { content: '👤 '; }
+
+  #error-box {
+    margin: 16px 20px 0;
+    padding: 10px 14px;
+    background: rgba(183, 121, 31, 0.15);
+    border: 1px solid var(--ambar);
+    color: var(--ambar);
+    font-size: 13px;
+    border-radius: 10px;
+  }
+  #error-box[hidden] { display: none; }
+
+  .btn-chico {
+    background: transparent; border: 1px solid var(--card-border); color: var(--text);
+    border-radius: 10px; padding: 7px 11px; font-size: 12px; font-weight: 700; cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-chico:hover { border-color: var(--tallo); color: var(--tallo); }
+  .btn-chico.dorado { border-color: var(--dorado); color: var(--dorado-dim); }
+  .btn-chico.dorado:hover { background: rgba(183,121,31,0.1); }
+  .btn-texto {
+    background: none; border: none; color: var(--dorado); font-size: 13px; font-weight: 600;
+    cursor: pointer; padding: 6px 0; font-family: 'Inter', sans-serif;
+  }
+  .btn-buscar {
+    background: linear-gradient(135deg, var(--tallo), #175534);
+    color: #fff; border: none; border-radius: 10px; padding: 10px 18px;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13.5px;
+    letter-spacing: 0.03em; text-transform: uppercase; cursor: pointer; white-space: nowrap;
+  }
+  .btn-buscar:disabled { opacity: 0.5; cursor: default; }
+
+  .admin-chip {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ambar); border: 1px solid var(--ambar); border-radius: 20px; padding: 3px 9px;
+    background: rgba(183,121,31,0.1);
+  }
+  .admin-chip[hidden] { display: none; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: calc(30px + env(safe-area-inset-bottom));
+    transform: translateX(-50%); max-width: calc(100% - 40px);
+    background: var(--tallo); color: #fafbfa; font-family: 'Inter', sans-serif; font-weight: 600;
+    font-size: 13px; text-align: center; padding: 10px 18px; border-radius: 20px; z-index: 60;
+    box-shadow: 0 8px 24px rgba(23,85,52,0.14);
+  }
+  #toast[hidden] { display: none; }
+  #toast.toast--pendiente { background: var(--ambar); }
+  #toast.toast--error { background: var(--tomate); }
+
+  /* ---------- Reporte de Ventas ---------- */
+
+  /* Sub-menú de las 5 vistas del reporte — mismo criterio visual que la
+     barra de módulos pero un nivel abajo (secundario): también desliza
+     horizontal en vez de hacer wrap. */
+  .reportes-tabs {
+    display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    margin: 14px 20px 4px; padding-bottom: 2px;
+  }
+  .reportes-tabs::-webkit-scrollbar { display: none; }
+  .reportes-tab {
+    flex: none; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 12.5px;
+    letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-dim);
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 999px;
+    padding: 8px 14px; white-space: nowrap; cursor: pointer;
+  }
+  .reportes-tab.activo { background: var(--tallo); border-color: var(--tallo); color: #fff; }
+
+  .reportes-panel[hidden] { display: none; }
+
+  .reportes-filtros {
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px;
+    margin: 14px 20px 0; padding: 12px; background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 12px;
+  }
+  .campo-inline { display: flex; flex-direction: column; gap: 4px; }
+  .campo-inline label {
+    font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim);
+  }
+  .campo-inline input[type=date], .campo-inline input[type=text] {
+    background: #fafbfa; border: 1px solid var(--card-border); border-radius: 9px;
+    padding: 9px 10px; font-size: 14px; color: var(--text); font-family: 'Inter', sans-serif;
+  }
+  .campo-inline input:focus { outline: none; border-color: var(--dorado); }
+
+  .cliente-campo { margin: 14px 20px 0; position: relative; }
+  .cliente-campo label {
+    display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-dim); margin-bottom: 4px;
+  }
+  .cliente-campo-fila { display: flex; align-items: center; gap: 10px; }
+  .cliente-campo input {
+    flex: 1; background: #fafbfa; border: 1px solid var(--card-border); border-radius: 9px;
+    padding: 11px 12px; font-size: 15px; color: var(--text); font-family: 'Inter', sans-serif;
+  }
+  .cliente-campo input:focus { outline: none; border-color: var(--dorado); }
+  .campo-suggerencias {
+    display: none; position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 30;
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 10px;
+    max-height: 240px; overflow-y: auto; box-shadow: 0 8px 24px rgba(23,85,52,0.12);
+  }
+  .campo-suggerencias.show { display: block; }
+  .campo-suggerencias .opt { padding: 10px 12px; font-size: 14px; cursor: pointer; }
+  .campo-suggerencias .opt:active { background: var(--bg); }
+
+  .reportes-resumen {
+    display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 20px 0;
+  }
+  .reportes-resumen .stat {
+    flex: 1; min-width: 110px; background: var(--card); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 10px 12px;
+  }
+  .reportes-resumen .stat .k {
+    display: block; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-dim); font-weight: 700;
+  }
+  .reportes-resumen .stat .v {
+    display: block; font-size: 17px; font-weight: 700; margin-top: 2px; color: var(--tallo);
+  }
+  .reportes-resumen[hidden] { display: none; }
+
+  .reportes-acciones-tabla { margin: 14px 20px 6px; display: flex; justify-content: flex-end; }
+
+  /* Tabla real (no grid por renglón) para que cada columna se dimensione
+     sola al contenido más ancho de TODA la lista — mismo criterio que
+     Pagos: la información se debe ver completa, nunca cortada. El wrapper
+     desliza horizontal en pantallas angostas en vez de recortar texto. */
+  .reportes-tabla-wrap { margin: 0 20px 20px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; overflow-x: auto; }
+  .reportes-tabla { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  .reportes-tabla th, .reportes-tabla td { padding: 10px 14px; text-align: left; white-space: nowrap; }
+  .reportes-tabla thead th {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); font-weight: 700;
+    background: rgba(31,111,67,0.04); border-bottom: 1px solid var(--card-border);
+  }
+  .reportes-tabla th.num, .reportes-tabla td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .reportes-tabla tbody tr { border-bottom: 1px solid #f0f2f1; }
+  .reportes-tabla tbody tr:last-child { border-bottom: none; }
+  .reportes-tabla tbody tr:hover td { background: rgba(0,0,0,0.025); }
+  .reportes-vacio { white-space: normal; text-align: center; color: var(--text-dim); font-size: 13.5px; padding: 26px 14px; }
+
+  .badge-forma {
+    display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+    color: #fff; border-radius: 999px; padding: 3px 9px; white-space: nowrap;
+  }
+  .badge-forma.credito { background: var(--reciente); }
+  .badge-forma.efectivo { background: var(--tallo); }
+
+  .fila-editar-btn {
+    background: none; border: 1px solid var(--card-border); border-radius: 8px; color: var(--text-dim);
+    font-size: 12px; padding: 4px 8px; cursor: pointer;
+  }
+  .fila-editar-btn:hover { border-color: var(--tallo); color: var(--tallo); }
+
+  .camion-resultados { margin: 10px 20px 0; }
+  .camion-opt {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 10px;
+    padding: 10px 12px; margin-bottom: 8px; cursor: pointer; font-size: 13px;
+  }
+  .camion-opt:hover { border-color: var(--tallo); }
+  .camion-opt.activo { border-color: var(--tallo); background: rgba(31,111,67,0.06); }
+  .camion-opt .carro { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; }
+  .camion-opt .meta { color: var(--text-dim); font-size: 12px; }
+
+  /* ---------- Layout ancho en PC (mismo criterio que los demás módulos) ---------- */
+  @media (min-width: 860px) {
+    body { max-width: 1000px; }
+  }
+</style>
+</head>
+<body>
+
+  <section id="login-view">
+    <form class="login-card" id="login-form">
+      <div class="login-eyebrow">Sistema · Acceso</div>
+      <div class="login-title">Bienvenido</div>
+      <div class="login-sub">Ingresa tus credenciales para continuar</div>
+
+      <div class="login-field">
+        <label for="login-usuario">Usuario</label>
+        <input type="text" id="login-usuario" autocomplete="username" autocapitalize="off" required>
+      </div>
+      <div class="login-field">
+        <label for="login-password">Contraseña</label>
+        <input type="password" id="login-password" autocomplete="current-password" required>
+      </div>
+
+      <div id="login-error"></div>
+
+      <button type="submit" id="login-submit">Iniciar sesión</button>
+    </form>
+  </section>
+
+  <div id="app-view" hidden>
+
+    <nav class="modulos-nav-bar">
+      <a class="modulo-btn" href="./index.html">Dashboard</a>
+      <a class="modulo-btn" href="./manifiesto.html">Manifiesto</a>
+      <a class="modulo-btn" href="./vale.html">Vale</a>
+      <a class="modulo-btn" href="./creditos.html">Créditos</a>
+      <a class="modulo-btn" href="./cuentas.html">Cuentas</a>
+      <a class="modulo-btn" href="./pagos.html">Pagos</a>
+      <a class="modulo-btn" href="./facturacion.html">Facturación</a>
+      <span class="modulo-btn activo">Reportes</span>
+    </nav>
+
+    <div class="top">
+      <div>
+        <div class="marca">Bodega R-56</div>
+        <div class="titulo-modulo">Reporte de Ventas</div>
+      </div>
+      <div class="top-acciones">
+        <div class="top-acciones-fila">
+          <span class="admin-chip" id="admin-chip" hidden>Admin</span>
+          <button id="btn-salir" type="button">Salir</button>
+        </div>
+        <span class="usuario-chip" id="usuario-chip"></span>
+      </div>
+    </div>
+
+    <div id="error-box" hidden></div>
+
+    <nav class="reportes-tabs">
+      <button class="reportes-tab activo" data-tab="dia" type="button">Ventas del día</button>
+      <button class="reportes-tab" data-tab="rango" type="button">Rango de fechas</button>
+      <button class="reportes-tab" data-tab="proveedor" type="button">Por proveedor</button>
+      <button class="reportes-tab" data-tab="camion" type="button">Por camión</button>
+      <button class="reportes-tab" data-tab="clientes" type="button">Top clientes</button>
+    </nav>
+
+    <!-- ---------- Ventas del día ---------- -->
+    <section class="reportes-panel" id="panel-dia">
+      <div class="reportes-filtros">
+        <div class="campo-inline">
+          <label>Fecha</label>
+          <input type="date" id="dia-fecha">
+        </div>
+        <button class="btn-chico dorado" id="dia-hoy-btn" type="button">Hoy</button>
+      </div>
+      <div class="reportes-resumen" id="dia-resumen"></div>
+      <div class="reportes-acciones-tabla"><button class="btn-texto" id="dia-exportar" type="button">⬇ Exportar CSV</button></div>
+      <div class="reportes-tabla-wrap">
+        <table class="reportes-tabla">
+          <thead><tr><th>Folio</th><th>Cliente</th><th>Tipo</th><th class="num">Total</th><th></th></tr></thead>
+          <tbody id="dia-lista"><tr><td colspan="5" class="reportes-vacio">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- Rango de fechas ---------- -->
+    <section class="reportes-panel" id="panel-rango" hidden>
+      <div class="reportes-filtros">
+        <div class="campo-inline"><label>Desde</label><input type="date" id="rango-desde"></div>
+        <div class="campo-inline"><label>Hasta</label><input type="date" id="rango-hasta"></div>
+        <button class="btn-buscar" id="rango-buscar" type="button">Buscar</button>
+      </div>
+      <div class="reportes-resumen" id="rango-resumen" hidden></div>
+      <div class="reportes-acciones-tabla"><button class="btn-texto" id="rango-exportar" type="button">⬇ Exportar CSV</button></div>
+      <div class="reportes-tabla-wrap">
+        <table class="reportes-tabla">
+          <thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th>Tipo</th><th class="num">Total</th><th></th></tr></thead>
+          <tbody id="rango-lista"><tr><td colspan="6" class="reportes-vacio">Elige un rango de fechas y busca.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- Por proveedor y rango de fechas ---------- -->
+    <section class="reportes-panel" id="panel-proveedor" hidden>
+      <div class="cliente-campo">
+        <label>Proveedor (agricultor)</label>
+        <div class="cliente-campo-fila">
+          <input type="text" id="proveedor-input" placeholder="Escribe para buscar un proveedor…" autocomplete="off">
+        </div>
+        <div class="campo-suggerencias" id="proveedor-suggerencias"></div>
+      </div>
+      <div class="reportes-filtros">
+        <div class="campo-inline"><label>Desde</label><input type="date" id="proveedor-desde"></div>
+        <div class="campo-inline"><label>Hasta</label><input type="date" id="proveedor-hasta"></div>
+        <button class="btn-buscar" id="proveedor-buscar" type="button">Buscar</button>
+      </div>
+      <div class="reportes-resumen" id="proveedor-resumen" hidden></div>
+      <div class="reportes-acciones-tabla"><button class="btn-texto" id="proveedor-exportar" type="button">⬇ Exportar CSV</button></div>
+      <div class="reportes-tabla-wrap">
+        <table class="reportes-tabla">
+          <thead><tr><th>Fecha</th><th>Folio</th><th>Cliente</th><th>Carro</th><th>Tamaño</th><th class="num">Cajas</th><th class="num">Precio</th><th class="num">Total</th></tr></thead>
+          <tbody id="proveedor-lista"><tr><td colspan="8" class="reportes-vacio">Elige un proveedor y un rango de fechas.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- Por camión y agricultor (cualquier fecha) ---------- -->
+    <section class="reportes-panel" id="panel-camion" hidden>
+      <div class="cliente-campo">
+        <label>Buscar camión (número de carro o proveedor, cualquier fecha)</label>
+        <div class="cliente-campo-fila">
+          <input type="text" id="camion-input" placeholder="Ej. 230 o Ramón…" autocomplete="off">
+        </div>
+      </div>
+      <div class="camion-resultados" id="camion-resultados"></div>
+      <div class="reportes-resumen" id="camion-resumen" hidden></div>
+      <div class="reportes-acciones-tabla"><button class="btn-texto" id="camion-exportar" type="button" hidden>⬇ Exportar CSV</button></div>
+      <div class="reportes-tabla-wrap">
+        <table class="reportes-tabla">
+          <thead><tr><th>Fecha</th><th>Folio</th><th>Cliente</th><th>Tamaño</th><th class="num">Cajas</th><th class="num">Precio</th><th class="num">Total</th></tr></thead>
+          <tbody id="camion-lista"><tr><td colspan="7" class="reportes-vacio">Busca y elige un camión arriba.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- Top clientes ---------- -->
+    <section class="reportes-panel" id="panel-clientes" hidden>
+      <div class="reportes-filtros">
+        <div class="campo-inline"><label>Desde</label><input type="date" id="clientes-desde"></div>
+        <div class="campo-inline"><label>Hasta</label><input type="date" id="clientes-hasta"></div>
+        <button class="btn-buscar" id="clientes-buscar" type="button">Buscar</button>
+      </div>
+      <div class="campo-inline" style="margin:0 20px;"></div>
+      <div class="reportes-acciones-tabla"><button class="btn-texto" id="clientes-exportar" type="button">⬇ Exportar CSV</button></div>
+      <div class="reportes-tabla-wrap">
+        <table class="reportes-tabla">
+          <thead><tr><th>#</th><th>Cliente</th><th class="num">Vales</th><th class="num">Cajas</th><th class="num">Total</th></tr></thead>
+          <tbody id="clientes-lista"><tr><td colspan="5" class="reportes-vacio">Elige un rango de fechas y busca. (No incluye Público General.)</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div style="height:20px;"></div>
+  </div>
+
+  <div id="toast" hidden></div>
+
+  <script src="./app-reportes.js"></script>
+</body>
+</html>

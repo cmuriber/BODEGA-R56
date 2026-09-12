@@ -259,11 +259,24 @@ async function iniciarSesionConToken(token, rol, nombre) {
 
   // Los catálogos se piden los 4 en paralelo (no uno tras otro) y cada
   // uno redibuja su parte en cuanto llega, sin bloquear a los demás.
-  cargarDisponible().then(() => renderPartidas());
+  const disponiblePromise = cargarDisponible().then(() => renderPartidas());
   cargarClientes();
   cargarVentasHoy();
   cargarSiguienteFolio();
   sincronizar();
+
+  // Deep-link desde el módulo "Reporte de Ventas": entrar a
+  // vale.html?folio=1234 abre ese vale directo en edición, sin tener que
+  // buscarlo a mano en "Vales guardados". Se espera a que termine
+  // cargarDisponible() para que el ajuste de disponible (+1 de las cajas
+  // que ya traía este vale) se aplique sobre datos reales, no sobre lo que
+  // hubiera en caché local — y se limpia el query param del URL para que
+  // un refresh no vuelva a disparar la edición sola.
+  const folioDesdeUrl = new URLSearchParams(location.search).get('folio');
+  if (folioDesdeUrl) {
+    history.replaceState(null, '', location.pathname);
+    disponiblePromise.then(() => cargarValeParaEditar(Number(folioDesdeUrl)));
+  }
 }
 
 document.getElementById('login-form').addEventListener('submit', async (ev) => {
