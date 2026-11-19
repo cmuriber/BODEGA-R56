@@ -1039,6 +1039,29 @@ function filasPorTamano(validas) {
 // Formato de ticket angosto (impresora térmica de 80mm) — un renglón por
 // partida en vez de tabla de columnas, que en 72-76mm de ancho se vuelve
 // ilegible. Ver estilos de impresión en vale.html (@media print).
+// Genera el patrón de marca de agua diagonal (un mosaico de SVG repetido
+// de fondo) para las copias ENTREGA y COPIA. Se repite en mosaico — no es
+// una sola palabra al centro — para que atraviese TODO el vale sin
+// importar cuántos renglones tenga: un vale de 1 renglón y uno de 10
+// quedan igual de cubiertos de orilla a orilla.
+function marcaAguaDataURI(texto) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220">
+    <text x="110" y="120" font-family="Arial, sans-serif" font-weight="800" font-size="30"
+      fill="rgba(0,0,0,0.16)" text-anchor="middle" transform="rotate(-35 110 110)">${texto}</text>
+  </svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+// Envuelve el cuerpo de un vale ya armado como una "copia" física dentro
+// del ticket: sin etiqueta = copia tal cual (la nuestra, sin modificar);
+// con etiqueta = con la marca de agua diagonal correspondiente encima.
+function envolverCopiaTicket(cuerpoHTML, etiqueta) {
+  const marca = etiqueta
+    ? `<div class="marca-agua" style="background-image:url('${marcaAguaDataURI(etiqueta)}');"></div>`
+    : '';
+  return `<div class="ticket-copia">${marca}${cuerpoHTML}</div>`;
+}
+
 function generarTicketHTML(folio, cliente, tipo, filas, totalVale) {
   const rows = filas.map(f => {
     const label = (CAMPOS_TAMANO.find(t => t.param === f.tamano) || {}).label || f.tamano;
@@ -1066,7 +1089,7 @@ function generarTicketHTML(folio, cliente, tipo, filas, totalVale) {
       <div class="reng-bottom"><span>${f.cajas} caja${f.cajas === 1 ? '' : 's'}${f.esMerma ? '' : ' × $' + fmt(f.precio)}</span><span>${importe}</span></div>
     </div>`;
   }).join('');
-  return `
+  const cuerpo = `
     <img class="logo-crespo" src="${LOGO_CRESPO_B64}" alt="Crespo">
     <h2>VALE DE VENTA</h2>
     <div class="center">Bodega R-56 · Tomates de Invernadero</div>
@@ -1081,6 +1104,17 @@ function generarTicketHTML(folio, cliente, tipo, filas, totalVale) {
     <div class="tot">TOTAL: $${fmt(totalVale)}</div>
     <div class="center" style="margin-top:14px;">_____________________<br>Firma / Sello</div>
   `;
+  // 3 copias de un jalón, en un solo window.print():
+  // 1) Original — para nosotros, sin ninguna marca.
+  // 2) ENTREGA — el cliente se la da a quien surte, para que sepa qué
+  //    entregar; lleva la marca de agua diagonal para que no se confunda
+  //    con el original.
+  // 3) COPIA — se la queda el cliente, también con su marca de agua.
+  return (
+    envolverCopiaTicket(cuerpo, null) +
+    envolverCopiaTicket(cuerpo, 'ENTREGA') +
+    envolverCopiaTicket(cuerpo, 'COPIA')
+  );
 }
 
 function resetForm() {

@@ -946,6 +946,18 @@
     }
     #print-area .reng-bottom { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; margin-top: 3px; }
     #print-area .tot { font-weight: 700; font-size: 15px; margin-top: 6px; text-align: right; }
+
+    /* Cada vale sale en 3 copias de un jalón (Original / Entrega / Copia).
+       page-break-after fuerza a la impresora térmica a cortar entre una
+       copia y la siguiente, como si fueran 3 tickets separados. La marca
+       de agua diagonal (mosaico de SVG) va DETRÁS del texto (z-index -1)
+       para que la información se siga leyendo perfectamente encima. */
+    #print-area .ticket-copia { position: relative; z-index: 0; page-break-after: always; }
+    #print-area .ticket-copia:last-child { page-break-after: auto; }
+    #print-area .marca-agua {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: -1;
+      background-repeat: repeat; background-position: center;
+    }
   }
 
   /* ---------- Layout de 2 columnas en pantallas anchas (mostrador/PC) ----------
