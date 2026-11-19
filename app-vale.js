@@ -458,6 +458,7 @@ function nuevaPartida() {
     id: partidaAutoId++,
     carroNumero: '', carroId: '', naveId: '', precio: '',
     colores: new Set(),
+    cajasPorColor: {},
     tamanos: new Set(),
     cajasPorTamano: {},
     cajasPendiente: '',
@@ -515,6 +516,7 @@ function renderPartidaCard(p, idx) {
   const total = p.esMerma ? 0 : totalCajas * (Number(p.precio) || 0);
   const multiTamano = p.tamanos.size >= 2;
   const unicoTamano = p.tamanos.size === 1 ? [...p.tamanos][0] : null;
+  const multiColor = p.colores.size >= 2;
   const cajasValue = unicoTamano ? (p.cajasPorTamano[unicoTamano] ?? '') : (multiTamano ? totalCajas : p.cajasPendiente);
   const carro = p.carroId ? getCarro(p.carroId) : null;
   // El número de carro puede tener varios agricultores abiertos a la vez
@@ -584,10 +586,15 @@ function renderPartidaCard(p, idx) {
           <span class="g-label">Color (puedes elegir varios)</span>
           <div class="opciones">
             ${COLORES.map(col => `
-              <label class="chip-check ${p.colores.has(col) ? 'checked' : ''}">
-                <input type="checkbox" data-color="${col}" data-id="${p.id}" ${p.colores.has(col) ? 'checked' : ''}>
-                ${col}
-              </label>`).join('')}
+              <div class="size-unit">
+                <label class="chip-check ${p.colores.has(col) ? 'checked' : ''}">
+                  <input type="checkbox" data-color="${col}" data-id="${p.id}" ${p.colores.has(col) ? 'checked' : ''}>
+                  ${col}
+                </label>
+                ${multiColor && p.colores.has(col) ? `
+                  <input type="number" min="0" step="1" class="size-qty" data-color-cantidad="${col}" data-id="${p.id}"
+                    value="${p.cajasPorColor[col] ?? ''}" placeholder="0">` : ''}
+              </div>`).join('')}
           </div>
         </div>
         <div class="checks-grupo">
@@ -767,8 +774,23 @@ document.getElementById('partidas-container').addEventListener('change', async (
     return;
   }
   if (t.dataset.color) {
-    if (t.checked) p.colores.add(t.dataset.color); else p.colores.delete(t.dataset.color);
-    t.closest('.chip-check').classList.toggle('checked', t.checked);
+    const col = t.dataset.color;
+    if (t.checked) {
+      p.colores.add(col);
+      if (!(col in p.cajasPorColor)) p.cajasPorColor[col] = '';
+    } else {
+      p.colores.delete(col);
+      delete p.cajasPorColor[col];
+    }
+    // Igual que con Tamaño: al marcar/desmarcar un color hace falta
+    // repintar la tarjeta completa, porque el cuadro de cantidad por color
+    // solo aparece cuando hay 2 o más colores elegidos a la vez.
+    rebuildCard(p);
+    return;
+  }
+  if (t.dataset.colorCantidad) {
+    p.cajasPorColor[t.dataset.colorCantidad] = t.value;
+    return;
   }
 });
 
@@ -791,6 +813,9 @@ document.getElementById('partidas-container').addEventListener('input', (e) => {
   if (t.dataset.tamanoCantidad) {
     p.cajasPorTamano[t.dataset.tamanoCantidad] = t.value;
     refreshCardNumbers(p);
+  }
+  if (t.dataset.colorCantidad) {
+    p.cajasPorColor[t.dataset.colorCantidad] = t.value;
   }
 });
 
@@ -1004,7 +1029,7 @@ function filasPorTamano(validas) {
         manifiestoId: p.carroId, carro: carro ? carro.carro : '', agricultor: carro ? carro.agricultor : '',
         naveId: p.naveId, invernadero: nave ? nave.invernadero : '', letra: nave ? nave.letra : '', semilla: nave ? nave.semilla : '',
         tamano: tamParam, cajas: cantidad, precio: p.esMerma ? 0 : Number(p.precio), esMerma: !!p.esMerma,
-        colores: Array.from(p.colores)
+        colores: Array.from(p.colores), coloresCantidades: { ...p.cajasPorColor }
       });
     });
   });
@@ -1028,7 +1053,10 @@ function generarTicketHTML(folio, cliente, tipo, filas, totalVale) {
     // necesita ver de qué color es el tomate que va a surtir, igual que ya
     // pasa con el carro y las cajas.
     const coloresTicket = (f.colores && f.colores.length)
-      ? `<div class="reng-colores">${f.colores.map(c => `<span class="color-chip">${c}</span>`).join('')}</div>`
+      ? `<div class="reng-colores">${f.colores.map(c => {
+          const cant = f.coloresCantidades && f.coloresCantidades[c];
+          return `<span class="color-chip">${c}${cant ? ` (${cant})` : ''}</span>`;
+        }).join('')}</div>`
       : '';
     return `
     <div class="reng">
