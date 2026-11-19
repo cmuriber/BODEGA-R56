@@ -1044,10 +1044,18 @@ function filasPorTamano(validas) {
 // una sola palabra al centro — para que atraviese TODO el vale sin
 // importar cuántos renglones tenga: un vale de 1 renglón y uno de 10
 // quedan igual de cubiertos de orilla a orilla.
+// OJO — por qué el texto va con contorno (stroke) y SIN relleno gris
+// semitransparente: una impresora térmica normalmente no imprime grises
+// de verdad, solo blanco y negro puro (1 bit), así que un relleno al 16%
+// de opacidad se puede perder por completo al imprimir (eso explicaría
+// que la copia con marca de agua haya salido igual a la original). Un
+// contorno negro sólido (100% de tinta, nada de transparencia) sí se
+// imprime siempre, y al ser solo la orilla de la letra (no rellena) se ve
+// más ligero que el texto normal del vale, sin taparlo.
 function marcaAguaDataURI(texto) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="220" height="220">
     <text x="110" y="120" font-family="Arial, sans-serif" font-weight="800" font-size="30"
-      fill="rgba(0,0,0,0.16)" text-anchor="middle" transform="rotate(-35 110 110)">${texto}</text>
+      fill="none" stroke="#000" stroke-width="1.4" text-anchor="middle" transform="rotate(-35 110 110)">${texto}</text>
   </svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
@@ -1109,32 +1117,59 @@ function construirCuerpoTicket(folio, cliente, tipo, filas, totalVale) {
   `;
 }
 
-function esperar(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+// Imprime las 3 copias del vale (Original / ENTREGA / COPIA) de un jalón,
+// en un solo window.print(), con un corte de la impresora entre cada una.
+//
+// OJO — por qué el alto de @page se calcula aquí en vez de dejarlo en
+// "auto": "auto" es lo correcto para que el rollo térmico no intente
+// centrar/recortar un ticket pensado para hoja carta, PERO con alto
+// "auto" Chrome deja de paginar de verdad — trata TODO el contenido (las
+// 3 copias) como una sola página larguísima, así que "page-break-after"
+// no sirve para cortar entre copias ahí (se probó: imprimía un solo
+// tiket, sin cortes, y a veces repetía el mismo contenido 3 veces por el
+// mismo motivo). La solución es fijarle a @page un alto EXACTO — ni
+// "auto" ni uno genérico enorme que desperdicie rollo — medido aquí mismo
+// del tamaño real que va a ocupar una copia (las 3 miden lo mismo: la
+// marca de agua es nada más un fondo, no agrega alto). Con un alto fijo,
+// Chrome sí pagina de verdad, "page-break-after" sí corta entre páginas,
+// y como el alto es el justo del ticket, no se desperdicia papel.
+function medirAltoTicketMM(cuerpoHTML) {
+  const area = document.getElementById('print-area');
+  // Mismas propiedades que definen el layout en @media print (ancho,
+  // relleno, tipografía) pero aplicadas aquí vía estilo en línea para
+  // poder medir el alto real FUERA de pantalla, sin que el usuario vea
+  // nada ni depender de que el navegador ya esté en modo impresión.
+  area.style.cssText = 'display:block; visibility:hidden; position:fixed; left:-9999px; top:0; ' +
+    'width:72mm; padding:2mm 4mm 6mm; font-family:Inter,sans-serif; font-size:11.5px; line-height:1.4;';
+  area.innerHTML = envolverCopiaTicket(cuerpoHTML, null);
+  const alturaPx = area.querySelector('.ticket-copia').getBoundingClientRect().height;
+  area.style.cssText = ''; // deja que @media print vuelva a mandar, como siempre
+  const PX_POR_MM = 96 / 25.4;
+  return Math.ceil(alturaPx / PX_POR_MM) + 6; // +6mm de margen de sobra
 }
 
-// Imprime las 3 copias del vale (Original / ENTREGA / COPIA) con 3 llamadas
-// SEPARADAS a window.print() en vez de una sola con las 3 copias juntas.
-//
-// OJO — por qué no se hace con una sola impresión y "page-break-after":
-// el rollo térmico usa @page { size: 80mm auto } (alto "auto", porque es
-// rollo continuo, no hoja carta). Con alto "auto" Chrome ya no pagina de
-// verdad — trata todo el contenido como una sola página larga — así que
-// "page-break-after" no sirve para cortar entre copias ahí (se probó y
-// solo salía un tiket). Mandando 3 trabajos de impresión por separado SÍ
-// funciona sin importar el driver de la impresora.
-async function imprimirVale3Copias(folio, cliente, tipo, filas, totalVale) {
-  const cuerpo = construirCuerpoTicket(folio, cliente, tipo, filas, totalVale);
-  const area = document.getElementById('print-area');
-  const copias = [null, 'ENTREGA', 'COPIA']; // Original, Entrega, Copia
-  for (const etiqueta of copias) {
-    area.innerHTML = envolverCopiaTicket(cuerpo, etiqueta);
-    window.print();
-    // Pequeña pausa antes de cambiar el contenido de la siguiente copia,
-    // para darle tiempo a la impresora/driver de tomar el trabajo actual
-    // antes de que lo reemplacemos.
-    await esperar(500);
+function fijarAltoPaginaTicket(alturaMM) {
+  let estilo = document.getElementById('estilo-pagina-ticket');
+  if (!estilo) {
+    estilo = document.createElement('style');
+    estilo.id = 'estilo-pagina-ticket';
+    document.head.appendChild(estilo);
   }
+  estilo.textContent = `@page { size: 80mm ${alturaMM}mm; margin: 0; }`;
+}
+
+function imprimirVale3Copias(folio, cliente, tipo, filas, totalVale) {
+  const cuerpo = construirCuerpoTicket(folio, cliente, tipo, filas, totalVale);
+  const alturaMM = medirAltoTicketMM(cuerpo);
+  fijarAltoPaginaTicket(alturaMM);
+  const area = document.getElementById('print-area');
+  // Original (sin marca) + ENTREGA + COPIA, cada una en su propia
+  // "página" (gracias al alto fijo de arriba, con corte real entre ellas).
+  area.innerHTML =
+    envolverCopiaTicket(cuerpo, null) +
+    envolverCopiaTicket(cuerpo, 'ENTREGA') +
+    envolverCopiaTicket(cuerpo, 'COPIA');
+  window.print();
 }
 
 function resetForm() {
@@ -1321,7 +1356,7 @@ async function procesarGuardado(botonActivo, { imprimir }) {
   ajustarDisponibleLocal(filasNuevas, -1);
   renderManifiestoPanel();
   if (imprimir) {
-    await imprimirVale3Copias(folioUsado || '?????', cliente, tipo, filasNuevas, totalVale);
+    imprimirVale3Copias(folioUsado || '?????', cliente, tipo, filasNuevas, totalVale);
   }
   mostrarToast(`Vale ${folioStr(folioUsado)} ${editandoAhora ? 'actualizado' : 'guardado'}${imprimir ? ' e impreso' : ''} — ${cliente} — $${fmt(totalVale)}`, 'ok');
 
