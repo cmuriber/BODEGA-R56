@@ -679,6 +679,7 @@ document.getElementById('camion-exportar').addEventListener('click', () => {
 // mostrador sin cliente identificado, no un cliente real que rankear.
 
 let clientesRankingActual = [];
+let clientesLineasCache = []; // líneas crudas del último "Buscar" — se reusan para abrir el detalle de un cliente sin otra llamada al servidor
 
 document.getElementById('clientes-buscar').addEventListener('click', async () => {
   const desde = document.getElementById('clientes-desde').value;
@@ -686,6 +687,7 @@ document.getElementById('clientes-buscar').addEventListener('click', async () =>
   if (!desde || !hasta) { mostrarToast('Elige fecha de inicio y de fin.', 'warn'); return; }
   if (desde > hasta) { mostrarToast('La fecha "desde" no puede ser después de "hasta".', 'warn'); return; }
 
+  cerrarDetalleCliente();
   const boton = document.getElementById('clientes-buscar');
   boton.disabled = true; boton.textContent = 'Buscando…';
   document.getElementById('clientes-lista').innerHTML = '<tr><td colspan="5" class="reportes-vacio">Cargando…</td></tr>';
@@ -693,11 +695,12 @@ document.getElementById('clientes-buscar').addEventListener('click', async () =>
     const url = `${APPS_SCRIPT_URL}?action=reporte_ventas&token=${encodeURIComponent(tokenActual)}&desde=${desde}&hasta=${hasta}`;
     const data = await llamarJSONP(url);
     if (data.error === 'no_autorizado') { await volverALogin(); return; }
-    if (!data.ok) { mostrarToast(data.error || 'No se pudo cargar el reporte.', 'error'); clientesRankingActual = []; }
-    else clientesRankingActual = rankingClientes(data.lineas || []);
+    if (!data.ok) { mostrarToast(data.error || 'No se pudo cargar el reporte.', 'error'); clientesRankingActual = []; clientesLineasCache = []; }
+    else { clientesLineasCache = data.lineas || []; clientesRankingActual = rankingClientes(clientesLineasCache); }
   } catch (err) {
     mostrarToast('Sin conexión — no se pudo cargar el reporte.', 'warn');
     clientesRankingActual = [];
+    clientesLineasCache = [];
   } finally {
     boton.disabled = false; boton.textContent = 'Buscar';
   }
@@ -727,13 +730,80 @@ function renderClientes() {
   cont.innerHTML = clientesRankingActual.map((c, i) => `
     <tr>
       <td>${i + 1}</td>
-      <td>${c.cliente}</td>
+      <td><button class="link-cliente" type="button" data-ver-cliente="${c.cliente}">${c.cliente}</button></td>
       <td class="num">${c.vales}</td>
       <td class="num">${fmt(c.cajas)}</td>
       <td class="num">$${fmt(c.total)}</td>
     </tr>
   `).join('');
 }
+
+// ---------- Detalle de un cliente (clic en su nombre en el ranking) ----------
+// Todo lo que compró ese cliente en el mismo rango de fechas ya buscado,
+// ordenado de la venta más reciente a la más antigua — no hace otra
+// llamada al servidor, filtra clientesLineasCache que ya se tiene en memoria.
+
+let clienteDetalleActual = null;
+let clienteDetalleLineas = [];
+
+function abrirDetalleCliente(nombreCliente) {
+  clienteDetalleActual = nombreCliente;
+  clienteDetalleLineas = clientesLineasCache
+    .filter(l => l.cliente === nombreCliente)
+    .sort((a, b) => (b.fecha === a.fecha ? b.folio - a.folio : String(b.fecha).localeCompare(String(a.fecha))));
+  renderClienteDetalle();
+  document.getElementById('clientes-ranking-view').hidden = true;
+  document.getElementById('clientes-detalle-view').hidden = false;
+}
+
+function cerrarDetalleCliente() {
+  document.getElementById('clientes-detalle-view').hidden = true;
+  document.getElementById('clientes-ranking-view').hidden = false;
+}
+
+function renderClienteDetalle() {
+  const cont = document.getElementById('clientes-detalle-lista');
+  const resumen = document.getElementById('clientes-detalle-resumen');
+  const titulo = document.getElementById('clientes-detalle-titulo');
+  const desde = document.getElementById('clientes-desde').value;
+  const hasta = document.getElementById('clientes-hasta').value;
+  titulo.innerHTML = `${clienteDetalleActual} <span class="rango">${fechaCorta(desde)} – ${fechaCorta(hasta)}</span>`;
+  if (clienteDetalleLineas.length === 0) {
+    cont.innerHTML = '<tr><td colspan="9" class="reportes-vacio">Sin compras en ese rango.</td></tr>';
+    resumen.hidden = true;
+    return;
+  }
+  const total = clienteDetalleLineas.reduce((a, l) => a + l.total, 0);
+  const cajas = clienteDetalleLineas.reduce((a, l) => a + l.cajas, 0);
+  const vales = new Set(clienteDetalleLineas.map(l => l.folio)).size;
+  resumen.hidden = false;
+  resumen.innerHTML = `
+    <div class="stat"><span class="k">Vales</span><span class="v">${vales}</span></div>
+    <div class="stat"><span class="k">Cajas</span><span class="v">${fmt(cajas)}</span></div>
+    <div class="stat"><span class="k">Total</span><span class="v">$${fmt(total)}</span></div>
+  `;
+  cont.innerHTML = clienteDetalleLineas.map(l => `
+    <tr>
+      <td>${fechaCorta(l.fecha)}</td>
+      <td>${folioStr(l.folio)}</td>
+      <td>${l.agricultor || '—'}</td>
+      <td>${l.carro || '—'}</td>
+      <td>${invernaderoCompuesto(l)}</td>
+      <td>${l.tamano}</td>
+      <td class="num">${fmt(l.cajas)}</td>
+      <td class="num">$${fmt(l.precio)}</td>
+      <td class="num">$${fmt(l.total)}</td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('clientes-detalle-volver').addEventListener('click', cerrarDetalleCliente);
+
+document.getElementById('clientes-detalle-exportar').addEventListener('click', () => {
+  if (clienteDetalleLineas.length === 0) { mostrarToast('No hay nada que exportar.', 'warn'); return; }
+  exportarCSV(`compras_${clienteDetalleActual}.csv`, ['Fecha', 'Folio', 'Agricultor', 'Carro', 'Invernadero', 'Tamaño', 'Cajas', 'Precio', 'Total'],
+    clienteDetalleLineas.map(l => [l.fecha, folioStr(l.folio), l.agricultor, l.carro, invernaderoCompuesto(l), l.tamano, l.cajas, l.precio, l.total]));
+});
 
 document.getElementById('clientes-exportar').addEventListener('click', () => {
   if (clientesRankingActual.length === 0) { mostrarToast('No hay nada que exportar.', 'warn'); return; }
@@ -748,6 +818,8 @@ document.getElementById('clientes-exportar').addEventListener('click', () => {
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-editar-folio]');
   if (btn) irAEditarFolio(btn.dataset.editarFolio);
+  const clienteBtn = e.target.closest('[data-ver-cliente]');
+  if (clienteBtn) abrirDetalleCliente(clienteBtn.dataset.verCliente);
 });
 
 // ---------- Service worker + arranque ----------
