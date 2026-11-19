@@ -1062,7 +1062,10 @@ function envolverCopiaTicket(cuerpoHTML, etiqueta) {
   return `<div class="ticket-copia">${marca}${cuerpoHTML}</div>`;
 }
 
-function generarTicketHTML(folio, cliente, tipo, filas, totalVale) {
+// Arma el HTML del cuerpo del vale (cabecera + renglones + total) — sin
+// envolverlo todavía en ninguna copia. Esto es lo que se repite igual en
+// las 3 copias (Original / Entrega / Copia).
+function construirCuerpoTicket(folio, cliente, tipo, filas, totalVale) {
   const rows = filas.map(f => {
     const label = (CAMPOS_TAMANO.find(t => t.param === f.tamano) || {}).label || f.tamano;
     const detalle = [f.invernadero, f.letra, f.semilla].filter(Boolean).join(' · ');
@@ -1089,7 +1092,7 @@ function generarTicketHTML(folio, cliente, tipo, filas, totalVale) {
       <div class="reng-bottom"><span>${f.cajas} caja${f.cajas === 1 ? '' : 's'}${f.esMerma ? '' : ' × $' + fmt(f.precio)}</span><span>${importe}</span></div>
     </div>`;
   }).join('');
-  const cuerpo = `
+  return `
     <img class="logo-crespo" src="${LOGO_CRESPO_B64}" alt="Crespo">
     <h2>VALE DE VENTA</h2>
     <div class="center">Bodega R-56 · Tomates de Invernadero</div>
@@ -1104,17 +1107,34 @@ function generarTicketHTML(folio, cliente, tipo, filas, totalVale) {
     <div class="tot">TOTAL: $${fmt(totalVale)}</div>
     <div class="center" style="margin-top:14px;">_____________________<br>Firma / Sello</div>
   `;
-  // 3 copias de un jalón, en un solo window.print():
-  // 1) Original — para nosotros, sin ninguna marca.
-  // 2) ENTREGA — el cliente se la da a quien surte, para que sepa qué
-  //    entregar; lleva la marca de agua diagonal para que no se confunda
-  //    con el original.
-  // 3) COPIA — se la queda el cliente, también con su marca de agua.
-  return (
-    envolverCopiaTicket(cuerpo, null) +
-    envolverCopiaTicket(cuerpo, 'ENTREGA') +
-    envolverCopiaTicket(cuerpo, 'COPIA')
-  );
+}
+
+function esperar(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Imprime las 3 copias del vale (Original / ENTREGA / COPIA) con 3 llamadas
+// SEPARADAS a window.print() en vez de una sola con las 3 copias juntas.
+//
+// OJO — por qué no se hace con una sola impresión y "page-break-after":
+// el rollo térmico usa @page { size: 80mm auto } (alto "auto", porque es
+// rollo continuo, no hoja carta). Con alto "auto" Chrome ya no pagina de
+// verdad — trata todo el contenido como una sola página larga — así que
+// "page-break-after" no sirve para cortar entre copias ahí (se probó y
+// solo salía un tiket). Mandando 3 trabajos de impresión por separado SÍ
+// funciona sin importar el driver de la impresora.
+async function imprimirVale3Copias(folio, cliente, tipo, filas, totalVale) {
+  const cuerpo = construirCuerpoTicket(folio, cliente, tipo, filas, totalVale);
+  const area = document.getElementById('print-area');
+  const copias = [null, 'ENTREGA', 'COPIA']; // Original, Entrega, Copia
+  for (const etiqueta of copias) {
+    area.innerHTML = envolverCopiaTicket(cuerpo, etiqueta);
+    window.print();
+    // Pequeña pausa antes de cambiar el contenido de la siguiente copia,
+    // para darle tiempo a la impresora/driver de tomar el trabajo actual
+    // antes de que lo reemplacemos.
+    await esperar(500);
+  }
 }
 
 function resetForm() {
@@ -1301,8 +1321,7 @@ async function procesarGuardado(botonActivo, { imprimir }) {
   ajustarDisponibleLocal(filasNuevas, -1);
   renderManifiestoPanel();
   if (imprimir) {
-    document.getElementById('print-area').innerHTML = generarTicketHTML(folioUsado || '?????', cliente, tipo, filasNuevas, totalVale);
-    window.print();
+    await imprimirVale3Copias(folioUsado || '?????', cliente, tipo, filasNuevas, totalVale);
   }
   mostrarToast(`Vale ${folioStr(folioUsado)} ${editandoAhora ? 'actualizado' : 'guardado'}${imprimir ? ' e impreso' : ''} — ${cliente} — $${fmt(totalVale)}`, 'ok');
 
