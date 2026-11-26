@@ -1117,59 +1117,70 @@ function construirCuerpoTicket(folio, cliente, tipo, filas, totalVale) {
   `;
 }
 
-// Imprime las 3 copias del vale (Original / ENTREGA / COPIA) de un jalón,
-// en un solo window.print(), con un corte de la impresora entre cada una.
+// Imprime las 3 copias del vale (Original / ENTREGA / COPIA).
 //
-// OJO — por qué el alto de @page se calcula aquí en vez de dejarlo en
-// "auto": "auto" es lo correcto para que el rollo térmico no intente
-// centrar/recortar un ticket pensado para hoja carta, PERO con alto
-// "auto" Chrome deja de paginar de verdad — trata TODO el contenido (las
-// 3 copias) como una sola página larguísima, así que "page-break-after"
-// no sirve para cortar entre copias ahí (se probó: imprimía un solo
-// tiket, sin cortes, y a veces repetía el mismo contenido 3 veces por el
-// mismo motivo). La solución es fijarle a @page un alto EXACTO — ni
-// "auto" ni uno genérico enorme que desperdicie rollo — medido aquí mismo
-// del tamaño real que va a ocupar una copia (las 3 miden lo mismo: la
-// marca de agua es nada más un fondo, no agrega alto). Con un alto fijo,
-// Chrome sí pagina de verdad, "page-break-after" sí corta entre páginas,
-// y como el alto es el justo del ticket, no se desperdicia papel.
-function medirAltoTicketMM(cuerpoHTML) {
-  const area = document.getElementById('print-area');
-  // Mismas propiedades que definen el layout en @media print (ancho,
-  // relleno, tipografía) pero aplicadas aquí vía estilo en línea para
-  // poder medir el alto real FUERA de pantalla, sin que el usuario vea
-  // nada ni depender de que el navegador ya esté en modo impresión.
-  area.style.cssText = 'display:block; visibility:hidden; position:fixed; left:-9999px; top:0; ' +
-    'width:72mm; padding:2mm 4mm 6mm; font-family:Inter,sans-serif; font-size:11.5px; line-height:1.4;';
-  area.innerHTML = envolverCopiaTicket(cuerpoHTML, null);
-  const alturaPx = area.querySelector('.ticket-copia').getBoundingClientRect().height;
-  area.style.cssText = ''; // deja que @media print vuelva a mandar, como siempre
-  const PX_POR_MM = 96 / 25.4;
-  return Math.ceil(alturaPx / PX_POR_MM) + 6; // +6mm de margen de sobra
+// OJO — historial de por qué quedó así (para no repetir los mismos
+// intentos fallidos):
+//   1) Primero se intentó con las 3 copias juntas en un solo
+//      window.print(), separadas por "page-break-after". No funcionó: el
+//      rollo térmico usa @page { size: 80mm auto } (alto "auto", porque
+//      es rollo continuo) y con alto "auto" Chrome NO pagina de verdad
+//      — trata todo como una sola página larguísima, sin cortes.
+//   2) Se intentó fijarle a @page un alto EXACTO (medido en JS) en vez de
+//      "auto", para forzar la paginación real. Tampoco funcionó: el
+//      driver de ESTA impresora/rollo solo sabe trabajar con el tamaño
+//      "auto" (continuo) que ya tenía configurado — en cuanto se le pidió
+//      un alto fijo que no reconocía, el sistema regresó a una hoja
+//      tamaño carta/A4 normal, dejando el tiket chiquito arriba y todo lo
+//      demás en blanco (que es justo lo que se vio en la prueba).
+//   3) Lo que SÍ es correcto para este caso: mandar las 3 copias como 3
+//      IMPRESIONES POR SEPARADO (3 trabajos de impresión distintos),
+//      cada una con el MISMO @page { size: 80mm auto } que ya funcionaba
+//      bien de toda la vida para un solo tiket. El corte entre copias no
+//      lo hace el navegador — lo hace la propia impresora térmica al
+//      terminar cada trabajo de impresión (así vienen configuradas casi
+//      todas: cortan solas al final de cada impresión). Por eso aquí se
+//      espera a que cada impresión termine de verdad (evento
+//      "afterprint", con un tiempo límite de respaldo) ANTES de cambiar
+//      el contenido para la siguiente copia — si no se espera, se corre
+//      el riesgo de que las 3 copias salgan iguales (porque el contenido
+//      ya se había reemplazado antes de que la impresora alcanzara a
+//      tomar el trabajo anterior).
+function esperarFinDeImpresion(msMax) {
+  return new Promise(resolve => {
+    let resuelto = false;
+    function terminar() {
+      if (resuelto) return;
+      resuelto = true;
+      window.removeEventListener('afterprint', terminar);
+      resolve();
+    }
+    window.addEventListener('afterprint', terminar);
+    setTimeout(terminar, msMax);
+  });
 }
 
-function fijarAltoPaginaTicket(alturaMM) {
-  let estilo = document.getElementById('estilo-pagina-ticket');
-  if (!estilo) {
-    estilo = document.createElement('style');
-    estilo.id = 'estilo-pagina-ticket';
-    document.head.appendChild(estilo);
-  }
-  estilo.textContent = `@page { size: 80mm ${alturaMM}mm; margin: 0; }`;
+// Deja que el navegador PINTE de verdad el nuevo contenido del ticket
+// antes de llamar a window.print(). Sin esto, cambiar el innerHTML y
+// llamar print() en el mismo instante corre el riesgo de que la
+// impresión capture el contenido ANTERIOR (el que ya estaba pintado),
+// porque el cambio de innerHTML no se refleja visualmente de inmediato
+// — es justo lo que explicaría que las 3 copias hayan salido idénticas
+// (las 3 con el contenido de la primera, sin marca de agua).
+function esperarRenderizado() {
+  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 }
 
-function imprimirVale3Copias(folio, cliente, tipo, filas, totalVale) {
+async function imprimirVale3Copias(folio, cliente, tipo, filas, totalVale) {
   const cuerpo = construirCuerpoTicket(folio, cliente, tipo, filas, totalVale);
-  const alturaMM = medirAltoTicketMM(cuerpo);
-  fijarAltoPaginaTicket(alturaMM);
   const area = document.getElementById('print-area');
-  // Original (sin marca) + ENTREGA + COPIA, cada una en su propia
-  // "página" (gracias al alto fijo de arriba, con corte real entre ellas).
-  area.innerHTML =
-    envolverCopiaTicket(cuerpo, null) +
-    envolverCopiaTicket(cuerpo, 'ENTREGA') +
-    envolverCopiaTicket(cuerpo, 'COPIA');
-  window.print();
+  const copias = [null, 'ENTREGA', 'COPIA']; // Original, Entrega, Copia
+  for (const etiqueta of copias) {
+    area.innerHTML = envolverCopiaTicket(cuerpo, etiqueta);
+    await esperarRenderizado();
+    window.print();
+    await esperarFinDeImpresion(1500);
+  }
 }
 
 function resetForm() {
@@ -1356,7 +1367,7 @@ async function procesarGuardado(botonActivo, { imprimir }) {
   ajustarDisponibleLocal(filasNuevas, -1);
   renderManifiestoPanel();
   if (imprimir) {
-    imprimirVale3Copias(folioUsado || '?????', cliente, tipo, filasNuevas, totalVale);
+    await imprimirVale3Copias(folioUsado || '?????', cliente, tipo, filasNuevas, totalVale);
   }
   mostrarToast(`Vale ${folioStr(folioUsado)} ${editandoAhora ? 'actualizado' : 'guardado'}${imprimir ? ' e impreso' : ''} — ${cliente} — $${fmt(totalVale)}`, 'ok');
 
