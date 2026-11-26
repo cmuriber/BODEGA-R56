@@ -313,20 +313,25 @@ document.getElementById('dia-hoy-btn').addEventListener('click', () => {
   cargarVentasDia(hoy);
 });
 
-let diaVentasActuales = [];
+let diaLineasActuales = [];
 let diaFechaActual = '';
 
+// Mismo formato que Rango/Proveedor/Camión (una fila por renglón, no por
+// vale) — se pide con la misma acción "reporte_ventas" que usan esas otras
+// vistas, nada más con desde = hasta = el día elegido, en vez de la acción
+// "ventas_dia" (que regresa un resumen por folio, no por renglón).
 async function cargarVentasDia(fecha) {
   diaFechaActual = fecha;
-  document.getElementById('dia-lista').innerHTML = '<tr><td colspan="6" class="reportes-vacio">Cargando…</td></tr>';
+  document.getElementById('dia-lista').innerHTML = '<tr><td colspan="10" class="reportes-vacio">Cargando…</td></tr>';
   try {
-    const data = await llamarJSONP(`${APPS_SCRIPT_URL}?action=ventas_dia&token=${encodeURIComponent(tokenActual)}&fecha=${encodeURIComponent(fecha)}`);
+    const url = `${APPS_SCRIPT_URL}?action=reporte_ventas&token=${encodeURIComponent(tokenActual)}&desde=${encodeURIComponent(fecha)}&hasta=${encodeURIComponent(fecha)}`;
+    const data = await llamarJSONP(url);
     if (data.error === 'no_autorizado') { await volverALogin(); return; }
-    if (!data.ok) { mostrarToast(data.error || 'No se pudo cargar la venta del día.', 'error'); diaVentasActuales = []; }
-    else diaVentasActuales = data.ventas || [];
+    if (!data.ok) { mostrarToast(data.error || 'No se pudo cargar la venta del día.', 'error'); diaLineasActuales = []; }
+    else diaLineasActuales = data.lineas || [];
   } catch (err) {
     mostrarToast('Sin conexión — no se pudo cargar la venta del día.', 'warn');
-    diaVentasActuales = [];
+    diaLineasActuales = [];
   }
   renderVentasDia();
 }
@@ -334,32 +339,39 @@ async function cargarVentasDia(fecha) {
 function renderVentasDia() {
   const cont = document.getElementById('dia-lista');
   const resumen = document.getElementById('dia-resumen');
-  if (diaVentasActuales.length === 0) {
-    cont.innerHTML = '<tr><td colspan="6" class="reportes-vacio">No hay ventas guardadas para esta fecha.</td></tr>';
+  if (diaLineasActuales.length === 0) {
+    cont.innerHTML = '<tr><td colspan="10" class="reportes-vacio">No hay ventas guardadas para esta fecha.</td></tr>';
     resumen.innerHTML = '';
     return;
   }
-  const total = diaVentasActuales.reduce((a, v) => a + v.total, 0);
+  const total = diaLineasActuales.reduce((a, l) => a + l.total, 0);
+  const cajas = diaLineasActuales.reduce((a, l) => a + l.cajas, 0);
+  const vales = new Set(diaLineasActuales.map(l => l.folio)).size;
   resumen.innerHTML = `
-    <div class="stat"><span class="k">Vales</span><span class="v">${diaVentasActuales.length}</span></div>
+    <div class="stat"><span class="k">Vales</span><span class="v">${vales}</span></div>
+    <div class="stat"><span class="k">Cajas</span><span class="v">${fmt(cajas)}</span></div>
     <div class="stat"><span class="k">Total del día</span><span class="v">$${fmt(total)}</span></div>
   `;
-  cont.innerHTML = diaVentasActuales.map(v => `
+  cont.innerHTML = diaLineasActuales.map(l => `
     <tr>
-      <td>${folioStr(v.folio)}</td>
-      <td>${v.cliente}</td>
-      <td>${v.invernadero || '—'}</td>
-      <td><span class="badge-forma ${v.tipo === 'CRÉDITO' ? 'credito' : 'efectivo'}">${v.tipo}</span></td>
-      <td class="num">$${fmt(v.total)}</td>
-      <td>${botonEditarHtml(v.folio, diaFechaActual)}</td>
+      <td>${fechaCorta(l.fecha)}</td>
+      <td>${folioStr(l.folio)}</td>
+      <td>${l.cliente}</td>
+      <td>${l.carro || '—'}</td>
+      <td>${invernaderoCompuesto(l)}</td>
+      <td>${l.tamano}</td>
+      <td class="num">${fmt(l.cajas)}</td>
+      <td class="num">$${fmt(l.precio)}</td>
+      <td class="num">$${fmt(l.total)}</td>
+      <td>${botonEditarHtml(l.folio, l.fecha)}</td>
     </tr>
   `).join('');
 }
 
 document.getElementById('dia-exportar').addEventListener('click', () => {
-  if (diaVentasActuales.length === 0) { mostrarToast('No hay nada que exportar.', 'warn'); return; }
-  exportarCSV(`ventas_${diaFechaActual}.csv`, ['Folio', 'Cliente', 'Invernadero', 'Tipo', 'Total'],
-    diaVentasActuales.map(v => [folioStr(v.folio), v.cliente, v.invernadero, v.tipo, v.total]));
+  if (diaLineasActuales.length === 0) { mostrarToast('No hay nada que exportar.', 'warn'); return; }
+  exportarCSV(`ventas_${diaFechaActual}.csv`, ['Fecha', 'Folio', 'Cliente', 'Carro', 'Invernadero', 'Tamaño', 'Cajas', 'Precio', 'Total'],
+    diaLineasActuales.map(l => [l.fecha, folioStr(l.folio), l.cliente, l.carro, invernaderoCompuesto(l), l.tamano, l.cajas, l.precio, l.total]));
 });
 
 // ================= Rango de fechas =================
@@ -374,13 +386,13 @@ document.getElementById('rango-buscar').addEventListener('click', async () => {
 
   const boton = document.getElementById('rango-buscar');
   boton.disabled = true; boton.textContent = 'Buscando…';
-  document.getElementById('rango-lista').innerHTML = '<tr><td colspan="7" class="reportes-vacio">Cargando…</td></tr>';
+  document.getElementById('rango-lista').innerHTML = '<tr><td colspan="10" class="reportes-vacio">Cargando…</td></tr>';
   try {
     const url = `${APPS_SCRIPT_URL}?action=reporte_ventas&token=${encodeURIComponent(tokenActual)}&desde=${desde}&hasta=${hasta}`;
     const data = await llamarJSONP(url);
     if (data.error === 'no_autorizado') { await volverALogin(); return; }
     if (!data.ok) { mostrarToast(data.error || 'No se pudo cargar el reporte.', 'error'); rangoFilasActuales = []; }
-    else rangoFilasActuales = agruparPorFolio(data.lineas || []);
+    else rangoFilasActuales = data.lineas || [];
   } catch (err) {
     mostrarToast('Sin conexión — no se pudo cargar el reporte.', 'warn');
     rangoFilasActuales = [];
@@ -390,48 +402,38 @@ document.getElementById('rango-buscar').addEventListener('click', async () => {
   renderRango();
 });
 
-function agruparPorFolio(lineas) {
-  const porFolio = {};
-  lineas.forEach(l => {
-    if (!porFolio[l.folio]) porFolio[l.folio] = { folio: l.folio, fecha: l.fecha, cliente: l.cliente, tipo: l.tipo, total: 0, cajas: 0, invernaderosVistos: {}, invernaderosOrden: [] };
-    porFolio[l.folio].total += l.total;
-    porFolio[l.folio].cajas += l.cajas;
-    const compuesto = invernaderoCompuesto(l);
-    if (compuesto !== '—' && !porFolio[l.folio].invernaderosVistos[compuesto]) {
-      porFolio[l.folio].invernaderosVistos[compuesto] = true;
-      porFolio[l.folio].invernaderosOrden.push(compuesto);
-    }
-  });
-  return Object.values(porFolio)
-    .map(p => ({ folio: p.folio, fecha: p.fecha, cliente: p.cliente, tipo: p.tipo, total: p.total, cajas: p.cajas, invernadero: p.invernaderosOrden.join(', ') }))
-    .sort((a, b) => a.fecha === b.fecha ? a.folio - b.folio : a.fecha.localeCompare(b.fecha));
-}
-
+// Mismo formato que Día/Proveedor/Camión — una fila por renglón, no por
+// vale (si un vale tiene 2 renglones, salen 2 filas, cada una con su propio
+// Carro/Tamaño/Cajas/Precio).
 function renderRango() {
   const cont = document.getElementById('rango-lista');
   const resumen = document.getElementById('rango-resumen');
   if (rangoFilasActuales.length === 0) {
-    cont.innerHTML = '<tr><td colspan="7" class="reportes-vacio">No hay ventas en ese rango de fechas.</td></tr>';
+    cont.innerHTML = '<tr><td colspan="10" class="reportes-vacio">No hay ventas en ese rango de fechas.</td></tr>';
     resumen.hidden = true;
     return;
   }
-  const total = rangoFilasActuales.reduce((a, v) => a + v.total, 0);
-  const cajas = rangoFilasActuales.reduce((a, v) => a + v.cajas, 0);
+  const total = rangoFilasActuales.reduce((a, l) => a + l.total, 0);
+  const cajas = rangoFilasActuales.reduce((a, l) => a + l.cajas, 0);
+  const vales = new Set(rangoFilasActuales.map(l => l.folio)).size;
   resumen.hidden = false;
   resumen.innerHTML = `
-    <div class="stat"><span class="k">Vales</span><span class="v">${rangoFilasActuales.length}</span></div>
+    <div class="stat"><span class="k">Vales</span><span class="v">${vales}</span></div>
     <div class="stat"><span class="k">Cajas</span><span class="v">${fmt(cajas)}</span></div>
     <div class="stat"><span class="k">Total</span><span class="v">$${fmt(total)}</span></div>
   `;
-  cont.innerHTML = rangoFilasActuales.map(v => `
+  cont.innerHTML = rangoFilasActuales.map(l => `
     <tr>
-      <td>${folioStr(v.folio)}</td>
-      <td>${fechaCorta(v.fecha)}</td>
-      <td>${v.cliente}</td>
-      <td>${v.invernadero || '—'}</td>
-      <td><span class="badge-forma ${v.tipo === 'CRÉDITO' ? 'credito' : 'efectivo'}">${v.tipo}</span></td>
-      <td class="num">$${fmt(v.total)}</td>
-      <td>${botonEditarHtml(v.folio, v.fecha)}</td>
+      <td>${fechaCorta(l.fecha)}</td>
+      <td>${folioStr(l.folio)}</td>
+      <td>${l.cliente}</td>
+      <td>${l.carro || '—'}</td>
+      <td>${invernaderoCompuesto(l)}</td>
+      <td>${l.tamano}</td>
+      <td class="num">${fmt(l.cajas)}</td>
+      <td class="num">$${fmt(l.precio)}</td>
+      <td class="num">$${fmt(l.total)}</td>
+      <td>${botonEditarHtml(l.folio, l.fecha)}</td>
     </tr>
   `).join('');
 }
@@ -440,8 +442,8 @@ document.getElementById('rango-exportar').addEventListener('click', () => {
   if (rangoFilasActuales.length === 0) { mostrarToast('No hay nada que exportar.', 'warn'); return; }
   const desde = document.getElementById('rango-desde').value;
   const hasta = document.getElementById('rango-hasta').value;
-  exportarCSV(`ventas_${desde}_a_${hasta}.csv`, ['Folio', 'Fecha', 'Cliente', 'Invernadero', 'Tipo', 'Total'],
-    rangoFilasActuales.map(v => [folioStr(v.folio), v.fecha, v.cliente, v.invernadero, v.tipo, v.total]));
+  exportarCSV(`ventas_${desde}_a_${hasta}.csv`, ['Fecha', 'Folio', 'Cliente', 'Carro', 'Invernadero', 'Tamaño', 'Cajas', 'Precio', 'Total'],
+    rangoFilasActuales.map(l => [l.fecha, folioStr(l.folio), l.cliente, l.carro, invernaderoCompuesto(l), l.tamano, l.cajas, l.precio, l.total]));
 });
 
 // ================= Por proveedor y rango de fechas =================
