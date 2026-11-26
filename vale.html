@@ -982,7 +982,11 @@
      archivo, estas reglas dejan de aplicarse aunque el @media sí esté
      activo. */
   @media (min-width: 860px) {
-    body { max-width: 1100px; }
+    /* OJO — 1180px debe ser IDÉNTICO en los 8 módulos (index, manifiesto,
+       vale, creditos, cuentas, pagos, facturacion, reportes). Si no, la
+       barra de navegación "salta" de posición al cambiar de pantalla —
+       bug real reportado 2026-11-26. */
+    body { max-width: 1180px; }
     .layout {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 340px;

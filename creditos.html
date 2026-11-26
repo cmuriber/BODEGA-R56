@@ -642,6 +642,11 @@
      <style> a propósito, para ganarle en cascada a las reglas base de
      arriba con la misma especificidad. */
   @media (min-width: 860px) {
+    /* OJO — 1180px debe ser IDÉNTICO en los 8 módulos (index, manifiesto,
+       vale, creditos, cuentas, pagos, facturacion, reportes). Si no, la
+       barra de navegación "salta" de posición al cambiar de pantalla —
+       bug real reportado 2026-11-26 (este módulo era el que ya estaba en
+       1180px; los otros 7 se subieron/bajaron para igualarlo). */
     body { max-width: 1180px; }
     .creditos-layout {
       display: grid;
