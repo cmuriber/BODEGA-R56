@@ -451,7 +451,7 @@
     /* Carro ya no es 1fr (antes se comía todo el espacio libre y dejaba un
        hueco enorme entre Carro y Cant.) — se limita a lo que de verdad
        necesita ("205 · J", "varios"), con un poco de margen. */
-    grid-template-columns: 26px 60px 52px minmax(70px, 130px) 46px 62px 74px 74px 78px 68px;
+    grid-template-columns: 26px 60px 58px minmax(70px, 130px) 46px 62px 74px 74px 78px 62px;
     gap: 8px; align-items: center; padding: 10px 10px; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
   }
   .vale-fila:last-child { border-bottom: none; }
@@ -464,7 +464,7 @@
   .agricultor-inicial { color: var(--text-dim); font-weight: 600; }
   .vale-fila .num { text-align: right; font-variant-numeric: tabular-nums; }
   .vale-fila input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
-  .vale-fila.pagado { background: rgba(31,111,67,0.05); }
+  .vale-fila.pagado { background: rgba(31,111,67,0.13); }
   .status-badge {
     font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; text-align: center;
     background: rgba(183,121,31,0.15); color: var(--dorado-dim);
@@ -522,14 +522,14 @@
        columnas para dárselo a Cliente, cuidando de dejar el total dentro
        del ancho normal de la pantalla (si de plano no cupiera por una
        ventana angosta, .vales-tabla-wrap ahora desliza en vez de cortar). */
-    grid-template-columns: minmax(130px, 1fr) 58px 40px 58px 36px 50px 64px 64px 72px 60px;
+    grid-template-columns: minmax(130px, 1fr) 58px 58px 58px 36px 44px 58px 58px 72px 60px;
     gap: 8px; align-items: center; padding: 10px 10px; border-bottom: 1px solid #f0f2f1; font-size: 12.5px;
   }
   .vale-fila-todos:last-child { border-bottom: none; }
   .vale-fila-todos.head { font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); font-weight: 700; background: rgba(31,111,67,0.04); }
   .vale-fila-todos > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .vale-fila-todos .num { text-align: right; font-variant-numeric: tabular-nums; }
-  .vale-fila-todos.pagado { background: rgba(31,111,67,0.05); }
+  .vale-fila-todos.pagado { background: rgba(31,111,67,0.13); }
   .cliente-link { color: var(--tallo); font-weight: 700; cursor: pointer; text-decoration: none; }
   .cliente-link:hover { text-decoration: underline; }
 

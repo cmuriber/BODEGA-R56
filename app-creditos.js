@@ -163,7 +163,7 @@ function fechaCorta(f) {
   if (!f) return '—';
   const partes = String(f).split('-');
   if (partes.length !== 3) return f;
-  return `${partes[2]}/${partes[1]}`;
+  return `${partes[2]}/${partes[1]}/${partes[0].slice(2)}`;
 }
 const MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 // Fecha larga en español ("24 de agosto de 2026") — usada en el
