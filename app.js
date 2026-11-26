@@ -248,10 +248,11 @@ let tokenActual = null;
 let usuarioNombre = null;
 let temporizadorRefresco = null;
 
-function mostrarLogin() {
+function mostrarLogin(mensajeOffline) {
   document.getElementById('login-view').hidden = false;
   document.getElementById('dashboard-view').hidden = true;
   if (temporizadorRefresco) clearInterval(temporizadorRefresco);
+  if (mensajeOffline) document.getElementById('login-error').textContent = mensajeOffline;
 }
 
 function mostrarDashboard() {
@@ -383,7 +384,7 @@ async function cargarDashboard() {
       // La sesión ya no es válida (expiró o se borró) — regresamos al login.
       await borrarSesion();
       tokenActual = null;
-      mostrarLogin();
+      mostrarLogin('Tu sesión expiró o no es válida. Vuelve a iniciar sesión.');
       return;
     }
     if (data.error) throw new Error(data.error);
@@ -432,6 +433,6 @@ if ('serviceWorker' in navigator) {
   if (sesion && sesion.token) {
     await iniciarSesionConToken(sesion.token, sesion.nombre);
   } else {
-    mostrarLogin();
+    mostrarLogin(navigator.onLine ? '' : 'No hay conexión y no se encontró una sesión guardada en este dispositivo. Conéctate al menos una vez para iniciar sesión — después podrás seguir trabajando sin internet.');
   }
 })();

@@ -162,9 +162,10 @@ let bloquePartidasActuales = [];
 
 // ---------- Sesión / Login (idéntico patrón a los demás módulos) ----------
 
-function mostrarLogin() {
+function mostrarLogin(mensajeOffline) {
   document.getElementById('login-view').hidden = false;
   document.getElementById('app-view').hidden = true;
+  if (mensajeOffline) document.getElementById('login-error').textContent = mensajeOffline;
 }
 function mostrarApp() {
   document.getElementById('login-view').hidden = true;
@@ -173,7 +174,7 @@ function mostrarApp() {
 async function volverALogin() {
   await borrarSesion();
   tokenActual = null;
-  mostrarLogin();
+  mostrarLogin('Tu sesión expiró o no es válida. Vuelve a iniciar sesión.');
 }
 
 async function iniciarSesionConToken(token, rol, nombre) {
@@ -696,6 +697,6 @@ if ('serviceWorker' in navigator) {
   if (sesion && sesion.token) {
     await iniciarSesionConToken(sesion.token, sesion.rol, sesion.nombre);
   } else {
-    mostrarLogin();
+    mostrarLogin(navigator.onLine ? '' : 'No hay conexión y no se encontró una sesión guardada en este dispositivo. Conéctate al menos una vez para iniciar sesión — después podrás seguir trabajando sin internet.');
   }
 })();
